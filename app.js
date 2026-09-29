@@ -8,6 +8,14 @@ let cameraCapabilities=null;
 let currentZoom=1;
 let torchOn=false;
 let scannerPausedAfterSuccess=false;
+let todayDutyState={
+  hasDuty:false,
+  clockedIn:false,
+  clockedOut:false,
+  patrolCount:0,
+  lastAction:'',
+  lastTime:''
+};
 
 const $=id=>document.getElementById(id);
 
@@ -17,10 +25,20 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   $('loginBtn').addEventListener('click',login);
   $('logoutBtn').addEventListener('click',logout);
-  $('clockInBtn').addEventListener('click',()=>doClock('clockIn'));
-  $('clockOutBtn').addEventListener('click',()=>doClock('clockOut'));
+  $('clockInBtn').addEventListener('click',()=>{
+    if($('clockInBtn').disabled)return;
+    doClock('clockIn');
+  });
 
-  $('patrolBtn').addEventListener('click',openPatrol);
+  $('clockOutBtn').addEventListener('click',()=>{
+    if($('clockOutBtn').disabled)return;
+    doClock('clockOut');
+  });
+
+  $('patrolBtn').addEventListener('click',()=>{
+    if($('patrolBtn').disabled)return;
+    openPatrol();
+  });
   $('patrolBackBtn').addEventListener('click',()=>showView('mainView'));
   $('manualQrBtn').addEventListener('click',()=>processQr($('manualQr').value));
   $('refocusBtn').addEventListener('click',refocusCamera);
@@ -215,6 +233,8 @@ async function login(){
       currentDuty?'ok':'warn'
     );
 
+    await refreshDutyDashboard();
+
   }catch(e){
     status('loginMessage',e.message,'err');
 
@@ -301,11 +321,177 @@ async function doClock(action){
     );
 
     status('mainMessage',r.message,'ok');
+    await refreshDutyDashboard();
 
   }catch(e){
     status('mainMessage',e.message,'err');
   }
 }
+
+
+async function refreshDutyDashboard(){
+  if(!currentPerson){
+    return;
+  }
+
+  try{
+    const r=await apiCall('todayRecords',{
+      personId:currentPerson.personId
+    });
+
+    const records=Array.isArray(r.records)?r.records:[];
+    const actions=records.map(x=>String(x.action||''));
+
+    const clockInRecord=
+      records.find(x=>String(x.action||'')==='上班簽到') || null;
+
+    const clockOutRecord=
+      records.find(x=>String(x.action||'')==='下班簽退') || null;
+
+    const patrolRecords=
+      records.filter(x=>String(x.action||'')==='定點巡查');
+
+    const latest=
+      records.length
+        ? records[records.length-1]
+        : null;
+
+    todayDutyState={
+      hasDuty:!!currentDuty,
+      clockedIn:!!clockInRecord,
+      clockedOut:!!clockOutRecord,
+      patrolCount:patrolRecords.length,
+      lastAction:latest?.action||'',
+      lastTime:latest?.time||''
+    };
+
+    renderDutyDashboard();
+
+  }catch(e){
+    todayDutyState={
+      hasDuty:!!currentDuty,
+      clockedIn:false,
+      clockedOut:false,
+      patrolCount:0,
+      lastAction:'',
+      lastTime:''
+    };
+
+    renderDutyDashboard();
+  }
+}
+
+
+function renderDutyDashboard(){
+  const panel=$('dutyStatusPanel');
+  const icon=$('dutyStatusIcon');
+  const text=$('dutyStatusText');
+  const patrolChip=$('patrolCountChip');
+  const lastChip=$('lastActionChip');
+
+  panel.classList.remove(
+    'state-neutral',
+    'state-wait',
+    'state-active',
+    'state-done'
+  );
+
+  let stateClass='state-neutral';
+  let stateIcon='○';
+  let stateText='今日無排班';
+
+  if(todayDutyState.hasDuty && !todayDutyState.clockedIn){
+    stateClass='state-wait';
+    stateIcon='●';
+    stateText='尚未上班簽到';
+  }
+
+  if(
+    todayDutyState.hasDuty &&
+    todayDutyState.clockedIn &&
+    !todayDutyState.clockedOut
+  ){
+    stateClass='state-active';
+    stateIcon='✓';
+    stateText='已上班｜勤務中';
+  }
+
+  if(
+    todayDutyState.hasDuty &&
+    todayDutyState.clockedOut
+  ){
+    stateClass='state-done';
+    stateIcon='✓';
+    stateText='已簽退｜勤務完成';
+  }
+
+  panel.classList.add(stateClass);
+  icon.textContent=stateIcon;
+  text.textContent=stateText;
+
+  patrolChip.textContent=
+    `已巡查 ${todayDutyState.patrolCount} 點`;
+
+  lastChip.textContent=
+    todayDutyState.lastAction
+      ? `最近：${todayDutyState.lastAction} ${todayDutyState.lastTime||''}`
+      : '尚無勤務紀錄';
+
+  applyDutyButtonState();
+}
+
+
+function setActionButtonState(id,disabled,reason=''){
+  const btn=$(id);
+
+  if(!btn)return;
+
+  btn.disabled=disabled;
+  btn.classList.toggle('action-disabled',disabled);
+
+  if(disabled && reason){
+    btn.dataset.disabledReason=reason;
+    btn.title=reason;
+  }else{
+    delete btn.dataset.disabledReason;
+    btn.removeAttribute('title');
+  }
+}
+
+
+function applyDutyButtonState(){
+  const s=todayDutyState;
+
+  // 無班：保留異常與補登，其餘勤務操作停用
+  if(!s.hasDuty){
+    setActionButtonState('clockInBtn',true,'今日無排班');
+    setActionButtonState('patrolBtn',true,'今日無排班');
+    setActionButtonState('clockOutBtn',true,'今日無排班');
+    return;
+  }
+
+  // 尚未上班
+  if(!s.clockedIn){
+    setActionButtonState('clockInBtn',false);
+    setActionButtonState('patrolBtn',true,'請先完成上班簽到');
+    setActionButtonState('clockOutBtn',true,'請先完成上班簽到');
+    return;
+  }
+
+  // 勤務中
+  if(s.clockedIn && !s.clockedOut){
+    setActionButtonState('clockInBtn',true,'已完成上班簽到');
+    setActionButtonState('patrolBtn',false);
+    setActionButtonState('clockOutBtn',false);
+    return;
+  }
+
+  // 已簽退
+  setActionButtonState('clockInBtn',true,'本班已完成');
+  setActionButtonState('patrolBtn',true,'本班已完成簽退');
+  setActionButtonState('clockOutBtn',true,'已完成下班簽退');
+}
+
 
 function openPatrol(){
   showView('patrolView');
@@ -739,6 +925,8 @@ async function processQr(raw){
       'ok'
     );
 
+    await refreshDutyDashboard();
+
   }catch(e){
     status('patrolMessage',e.message,'err');
     setTimeout(()=>{scanBusy=false;},1600);
@@ -748,6 +936,7 @@ async function processQr(raw){
 async function openRecords(){
   showView('recordsView');
   await loadTodayRecords();
+  await refreshDutyDashboard();
 }
 
 async function loadTodayRecords(){

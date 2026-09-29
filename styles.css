@@ -291,3 +291,82 @@ footer{text-align:center;color:#66849b;font-size:11px;padding:15px}
     grid-template-columns:repeat(3,minmax(0,1fr));
   }
 }
+
+
+/* ===== 第14步：勤務首頁狀態 ===== */
+.duty-status{
+  margin-top:12px;
+  padding:14px;
+  border-radius:16px;
+  border:1px solid #315a79;
+  background:#0a1d2d;
+  transition:.2s ease;
+}
+.duty-status-main{
+  display:flex;
+  align-items:center;
+  gap:11px;
+}
+.duty-status-icon{
+  width:42px;
+  height:42px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  font-size:22px;
+  font-weight:900;
+  border:2px solid currentColor;
+}
+.duty-status-main strong{
+  display:block;
+  margin-top:3px;
+  font-size:17px;
+}
+.duty-status-meta{
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+.status-chip{
+  display:inline-flex;
+  align-items:center;
+  min-height:28px;
+  padding:5px 9px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.15);
+  background:rgba(255,255,255,.05);
+  font-size:11px;
+  color:#dceaf4;
+}
+.duty-status.state-neutral{
+  border-color:#42596b;
+  background:#12212d;
+  color:#9fb1bf;
+}
+.duty-status.state-wait{
+  border-color:#b38324;
+  background:linear-gradient(135deg,#322607,#443109);
+  color:#ffd56a;
+}
+.duty-status.state-active{
+  border-color:#299164;
+  background:linear-gradient(135deg,#0b3523,#0d4a30);
+  color:#7ce5ad;
+}
+.duty-status.state-done{
+  border-color:#47718f;
+  background:linear-gradient(135deg,#102c42,#173d59);
+  color:#8dd3ff;
+}
+.tile.action-disabled,
+.tile:disabled{
+  opacity:.42;
+  filter:saturate(.45);
+  cursor:not-allowed;
+  border-color:#334656;
+}
+.tile.action-disabled small,
+.tile:disabled small{
+  color:#7d8d9a;
+}

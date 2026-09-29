@@ -9,7 +9,7 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=20260929-camera1">
+  <link rel="stylesheet" href="./styles.css?v=20260929-status1">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <title>高雄軟體園區保全勤務簽到系統</title>
 </head>
@@ -59,6 +59,21 @@
           <h2 id="staffLabel">—</h2>
         </div>
         <button id="logoutBtn" class="text-btn">登出</button>
+      </div>
+
+      <div id="dutyStatusPanel" class="duty-status state-neutral">
+        <div class="duty-status-main">
+          <span id="dutyStatusIcon" class="duty-status-icon">○</span>
+          <div>
+            <div class="eyebrow">勤務狀態</div>
+            <strong id="dutyStatusText">讀取中…</strong>
+          </div>
+        </div>
+
+        <div class="duty-status-meta">
+          <span id="patrolCountChip" class="status-chip">巡查 0 點</span>
+          <span id="lastActionChip" class="status-chip">尚無紀錄</span>
+        </div>
       </div>
 
       <div class="info-grid">
@@ -279,6 +294,6 @@
 </div>
 
 <script src="./config.js"></script>
-<script src="./app.js?v=20260929-camera1"></script>
+<script src="./app.js?v=20260929-status1"></script>
 </body>
 </html>

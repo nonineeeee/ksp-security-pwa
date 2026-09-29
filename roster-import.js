@@ -109,8 +109,8 @@ async function checkApi(){
   try{
     const r=await apiCall('ping',{});
 
-    if(!String(r.version||'').startsWith('fresh-v1')){
-      throw new Error(`API版本不符：${r.version||'未知'}`);
+    if(r.service !== 'KSP Security Fresh API'){
+      throw new Error(`API服務不符：${r.service||'未知'}`);
     }
 
     b.className='badge ok';

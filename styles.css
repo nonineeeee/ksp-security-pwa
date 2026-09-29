@@ -370,3 +370,104 @@ footer{text-align:center;color:#66849b;font-size:11px;padding:15px}
 .tile:disabled small{
   color:#7d8d9a;
 }
+
+
+/* ===== 第15步：本班巡查進度 ===== */
+.patrol-progress{
+  margin-top:14px;
+  padding:14px;
+  border:1px solid #315a79;
+  border-radius:17px;
+  background:#081c2d;
+}
+.patrol-progress-head h3{
+  margin:2px 0 0;
+  font-size:16px;
+}
+.progress-count{
+  min-width:58px;
+  padding:7px 10px;
+  border-radius:999px;
+  text-align:center;
+  background:#123954;
+  border:1px solid #2f6c96;
+  color:#aee3ff;
+}
+.progress-bar{
+  height:8px;
+  margin:12px 0;
+  border-radius:999px;
+  overflow:hidden;
+  background:#173247;
+}
+.progress-bar-fill{
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg,#1f9d67,#56cf91);
+  transition:width .25s ease;
+}
+.patrol-point-list{
+  display:grid;
+  gap:7px;
+}
+.patrol-point{
+  display:grid;
+  grid-template-columns:34px 1fr auto;
+  align-items:center;
+  gap:9px;
+  min-height:58px;
+  padding:9px 10px;
+  border-radius:13px;
+  border:1px solid #2a465d;
+  background:#0a1f30;
+}
+.patrol-point .point-state{
+  width:30px;
+  height:30px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  font-weight:900;
+}
+.patrol-point strong{
+  display:block;
+  font-size:13px;
+}
+.patrol-point small{
+  display:block;
+  margin-top:2px;
+  color:#8fa8bc;
+  font-size:11px;
+}
+.patrol-point .point-time{
+  font-size:11px;
+  white-space:nowrap;
+}
+.patrol-point.pending .point-state{
+  border:1px solid #546b7c;
+  color:#8196a6;
+}
+.patrol-point.pending .point-time{
+  color:#7891a4;
+}
+.patrol-point.done{
+  border-color:#26764f;
+  background:#0b3021;
+}
+.patrol-point.done .point-state{
+  background:#178354;
+  color:white;
+}
+.patrol-point.done .point-time{
+  color:#76e0aa;
+  font-weight:800;
+}
+@media(max-width:430px){
+  .patrol-point{
+    grid-template-columns:32px 1fr;
+  }
+  .patrol-point .point-time{
+    grid-column:2;
+    white-space:normal;
+  }
+}

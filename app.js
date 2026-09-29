@@ -17,6 +17,14 @@ let todayDutyState={
   lastTime:''
 };
 
+const PATROL_POINTS=[
+  {id:'A01',name:'南區綜合大樓A棟1樓'},
+  {id:'B01',name:'南區綜合大樓B棟1樓'},
+  {id:'C01',name:'南區綜合大樓C棟1樓'},
+  {id:'N01',name:'新創大樓'},
+  {id:'F01',name:'鴻海大樓'}
+];
+
 const $=id=>document.getElementById(id);
 
 document.addEventListener('DOMContentLoaded',()=>{
@@ -335,7 +343,7 @@ async function refreshDutyDashboard(){
   }
 
   try{
-    const r=await apiCall('todayRecords',{
+    const r=await apiCall('dutyRecords',{
       personId:currentPerson.personId
     });
 
@@ -356,16 +364,31 @@ async function refreshDutyDashboard(){
         ? records[records.length-1]
         : null;
 
+    const patrolDone={};
+
+    patrolRecords.forEach(x=>{
+      const id=String(x.checkpointId||'').trim().toUpperCase();
+
+      if(id && !patrolDone[id]){
+        patrolDone[id]={
+          time:x.time||'',
+          date:x.date||''
+        };
+      }
+    });
+
     todayDutyState={
       hasDuty:!!currentDuty,
       clockedIn:!!clockInRecord,
       clockedOut:!!clockOutRecord,
-      patrolCount:patrolRecords.length,
+      patrolCount:Object.keys(patrolDone).length,
+      patrolDone:patrolDone,
       lastAction:latest?.action||'',
       lastTime:latest?.time||''
     };
 
     renderDutyDashboard();
+    renderPatrolProgress();
 
   }catch(e){
     todayDutyState={
@@ -373,11 +396,13 @@ async function refreshDutyDashboard(){
       clockedIn:false,
       clockedOut:false,
       patrolCount:0,
+      patrolDone:{},
       lastAction:'',
       lastTime:''
     };
 
     renderDutyDashboard();
+    renderPatrolProgress();
   }
 }
 
@@ -456,6 +481,63 @@ function setActionButtonState(id,disabled,reason=''){
     delete btn.dataset.disabledReason;
     btn.removeAttribute('title');
   }
+}
+
+
+
+function renderPatrolProgress(){
+  const done=
+    todayDutyState.patrolDone || {};
+
+  let completed=0;
+
+  PATROL_POINTS.forEach(point=>{
+    const row=
+      document.querySelector(
+        `.patrol-point[data-point="${point.id}"]`
+      );
+
+    if(!row)return;
+
+    const info=done[point.id];
+    const state=row.querySelector('.point-state');
+    const time=row.querySelector('.point-time');
+
+    row.classList.remove(
+      'pending',
+      'done'
+    );
+
+    if(info){
+      completed++;
+      row.classList.add('done');
+      state.textContent='✓';
+      time.textContent=
+        info.time
+          ? `完成 ${info.time}`
+          : '已完成';
+    }else{
+      row.classList.add('pending');
+      state.textContent='○';
+      time.textContent='待巡查';
+    }
+  });
+
+  const total=
+    PATROL_POINTS.length;
+
+  $('patrolProgressCount').textContent=
+    `${completed} / ${total}`;
+
+  $('patrolProgressBar').style.width=
+    `${Math.round(
+      completed /
+      total *
+      100
+    )}%`;
+
+  $('patrolCountChip').textContent=
+    `已巡查 ${completed} / ${total} 點`;
 }
 
 
@@ -942,11 +1024,11 @@ async function openRecords(){
 async function loadTodayRecords(){
   if(!currentPerson)return;
 
-  status('recordsMessage','正在讀取今日紀錄…','info');
+  status('recordsMessage','正在讀取本班紀錄…','info');
   $('recordsList').innerHTML='';
 
   try{
-    const r=await apiCall('todayRecords',{
+    const r=await apiCall('dutyRecords',{
       personId:currentPerson.personId
     });
 
@@ -962,7 +1044,7 @@ function renderRecords(records){
   const box=$('recordsList');
 
   if(!records.length){
-    box.innerHTML='<div class="empty">今日尚無勤務紀錄。</div>';
+    box.innerHTML='<div class="empty">本班尚無勤務紀錄。</div>';
     return;
   }
 

@@ -9,7 +9,7 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=20260929-status1">
+  <link rel="stylesheet" href="./styles.css?v=20260929-progress1">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <title>高雄軟體園區保全勤務簽到系統</title>
 </head>
@@ -83,6 +83,48 @@
         <div class="info-item"><span>下班</span><strong id="dutyEnd">—</strong></div>
       </div>
 
+      <div class="patrol-progress">
+        <div class="section-head patrol-progress-head">
+          <div>
+            <div class="eyebrow">本班巡查進度</div>
+            <h3>5 個定點巡查</h3>
+          </div>
+          <strong id="patrolProgressCount" class="progress-count">0 / 5</strong>
+        </div>
+
+        <div class="progress-bar">
+          <div id="patrolProgressBar" class="progress-bar-fill" style="width:0%"></div>
+        </div>
+
+        <div id="patrolProgressList" class="patrol-point-list">
+          <div class="patrol-point pending" data-point="A01">
+            <span class="point-state">○</span>
+            <div><strong>A01</strong><small>南區綜合大樓A棟1樓</small></div>
+            <span class="point-time">待巡查</span>
+          </div>
+          <div class="patrol-point pending" data-point="B01">
+            <span class="point-state">○</span>
+            <div><strong>B01</strong><small>南區綜合大樓B棟1樓</small></div>
+            <span class="point-time">待巡查</span>
+          </div>
+          <div class="patrol-point pending" data-point="C01">
+            <span class="point-state">○</span>
+            <div><strong>C01</strong><small>南區綜合大樓C棟1樓</small></div>
+            <span class="point-time">待巡查</span>
+          </div>
+          <div class="patrol-point pending" data-point="N01">
+            <span class="point-state">○</span>
+            <div><strong>N01</strong><small>新創大樓</small></div>
+            <span class="point-time">待巡查</span>
+          </div>
+          <div class="patrol-point pending" data-point="F01">
+            <span class="point-state">○</span>
+            <div><strong>F01</strong><small>鴻海大樓</small></div>
+            <span class="point-time">待巡查</span>
+          </div>
+        </div>
+      </div>
+
       <div id="patrolExempt" class="mini-note hidden"></div>
       <div id="mainMessage"></div>
     </section>
@@ -101,7 +143,7 @@
       </button>
 
       <button id="recordsBtn" class="tile">
-        <span>📋</span><b>今日紀錄</b><small>本日勤務紀錄</small>
+        <span>📋</span><b>本班紀錄</b><small>本班勤務紀錄</small>
       </button>
 
       <button id="correctionBtn" class="tile wide correction-tile">
@@ -169,8 +211,8 @@
   <section id="recordsView" class="card hidden">
     <div class="section-head">
       <div>
-        <div class="eyebrow">今日勤務</div>
-        <h2>今日紀錄</h2>
+        <div class="eyebrow">本班勤務</div>
+        <h2>本班紀錄</h2>
       </div>
       <button id="recordsBackBtn" class="text-btn">返回</button>
     </div>
@@ -294,6 +336,6 @@
 </div>
 
 <script src="./config.js"></script>
-<script src="./app.js?v=20260929-status1"></script>
+<script src="./app.js?v=20260929-progress1"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 
-const CACHE_NAME='ksp-security-fresh-pwa-v1';
+const CACHE_NAME='ksp-security-fresh-pwa-v1-1';
 
 const ASSETS=[
   './',

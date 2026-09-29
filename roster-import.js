@@ -109,7 +109,7 @@ async function checkApi(){
   try{
     const r=await apiCall('ping',{});
 
-    if(r.version!=='fresh-v1'){
+    if(!String(r.version||'').startsWith('fresh-v1')){
       throw new Error(`API版本不符：${r.version||'未知'}`);
     }
 

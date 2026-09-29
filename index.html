@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b1f33">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./icon-192.png">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <title>高雄軟體園區保全勤務簽到系統</title>
+</head>
+<body>
+<main class="app">
+
+  <header class="hero">
+    <div class="logo">🛡️</div>
+    <div>
+      <h1>高雄軟體園區<br>保全勤務定點簽到系統</h1>
+      <p>全新重建版｜fresh-v1</p>
+    </div>
+  </header>
+
+  <section class="card api-card">
+    <div class="row">
+      <span>API 狀態</span>
+      <strong id="apiStatus" class="badge waiting">檢查中</strong>
+    </div>
+    <div id="apiDetail" class="api-detail"></div>
+  </section>
+
+  <section id="loginView" class="card">
+    <h2>保全人員登入</h2>
+
+    <label for="personId">人員編號</label>
+    <input id="personId" autocomplete="username" placeholder="例如 S001">
+
+    <label for="password">密碼</label>
+    <input id="password" type="password" autocomplete="current-password" placeholder="請輸入密碼">
+
+    <button id="loginBtn" class="btn primary">登入系統</button>
+    <div id="loginMessage"></div>
+
+    <div class="admin-divider"><span>管理功能</span></div>
+    <a class="btn roster-link" href="./roster-import.html">
+      📥 匯入班表
+      <small>Excel／CSV</small>
+    </a>
+  </section>
+
+  <section id="mainView" class="hidden">
+    <section class="card">
+      <div class="topbar">
+        <div>
+          <div class="eyebrow">目前登入</div>
+          <h2 id="staffLabel">—</h2>
+        </div>
+        <button id="logoutBtn" class="text-btn">登出</button>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-item"><span>班別</span><strong id="todayShift">—</strong></div>
+        <div class="info-item"><span>勤務日期</span><strong id="dutyDate">—</strong></div>
+        <div class="info-item"><span>上班</span><strong id="dutyStart">—</strong></div>
+        <div class="info-item"><span>下班</span><strong id="dutyEnd">—</strong></div>
+      </div>
+
+      <div id="patrolExempt" class="mini-note hidden"></div>
+      <div id="mainMessage"></div>
+    </section>
+
+    <section class="actions">
+      <button id="clockInBtn" class="tile">
+        <span>🟢</span><b>上班簽到</b><small>GPS 350 公尺</small>
+      </button>
+
+      <button id="patrolBtn" class="tile">
+        <span>📷</span><b>定點巡查</b><small>QR＋GPS</small>
+      </button>
+
+      <button id="incidentBtn" class="tile">
+        <span>⚠️</span><b>異常事件</b><small>拍照＋GPS</small>
+      </button>
+
+      <button id="recordsBtn" class="tile">
+        <span>📋</span><b>今日紀錄</b><small>本日勤務紀錄</small>
+      </button>
+
+      <button id="correctionBtn" class="tile wide correction-tile">
+        <span>📝</span><b>漏簽補登</b><small>提出補登紀錄</small>
+      </button>
+
+      <button id="clockOutBtn" class="tile wide checkout-tile">
+        <span>🔴</span><b>下班簽退</b><small>GPS 簽退</small>
+      </button>
+    </section>
+  </section>
+
+  <section id="patrolView" class="card hidden">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">QR＋GPS</div>
+        <h2>定點巡查</h2>
+      </div>
+      <button id="patrolBackBtn" class="text-btn">返回</button>
+    </div>
+
+    <div class="notice">
+      請掃描巡查點 QR Code。系統辨識後會取得 GPS 並送出巡查紀錄。
+    </div>
+
+    <div id="reader"></div>
+    <div id="cameraStatus" class="camera-status">相機尚未啟動</div>
+
+    <div id="pointCard" class="point hidden">
+      <strong id="pointName">—</strong>
+      <small id="pointCode">—</small>
+      <div class="info-grid compact">
+        <div class="info-item"><span>允許距離</span><strong id="maxDistance">—</strong></div>
+        <div class="info-item"><span>GPS精度</span><strong id="gpsAccuracy">—</strong></div>
+      </div>
+    </div>
+
+    <label for="manualQr">無法掃描時手動輸入 QR 識別碼</label>
+    <input id="manualQr" placeholder="例如 KSP-A01">
+    <button id="manualQrBtn" class="btn outline">確認識別碼</button>
+
+    <div id="patrolMessage"></div>
+  </section>
+
+  <section id="recordsView" class="card hidden">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">今日勤務</div>
+        <h2>今日紀錄</h2>
+      </div>
+      <button id="recordsBackBtn" class="text-btn">返回</button>
+    </div>
+
+    <button id="refreshRecordsBtn" class="btn outline">重新整理</button>
+    <div id="recordsMessage"></div>
+    <div id="recordsList" class="records-list"></div>
+  </section>
+
+  <section id="incidentView" class="card hidden">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">勤務現場</div>
+        <h2>異常事件回報</h2>
+      </div>
+      <button id="incidentBackBtn" class="text-btn">返回</button>
+    </div>
+
+    <label for="incidentCheckpoint">位置／巡查點</label>
+    <select id="incidentCheckpoint">
+      <option value="">請選擇（可不選）</option>
+      <option value="南區綜合大樓A棟1樓">南區綜合大樓A棟1樓</option>
+      <option value="南區綜合大樓B棟1樓">南區綜合大樓B棟1樓</option>
+      <option value="南區綜合大樓C棟1樓">南區綜合大樓C棟1樓</option>
+      <option value="新創大樓">新創大樓</option>
+      <option value="鴻海大樓">鴻海大樓</option>
+      <option value="其他位置">其他位置</option>
+    </select>
+
+    <label for="incidentType">異常類型</label>
+    <select id="incidentType">
+      <option value="">請選擇</option>
+      <option>門禁異常</option>
+      <option>消防異常</option>
+      <option>設備異常</option>
+      <option>照明異常</option>
+      <option>環境異常</option>
+      <option>人員／車輛異常</option>
+      <option>其他</option>
+    </select>
+
+    <label for="incidentDescription">異常說明</label>
+    <textarea id="incidentDescription" rows="5" placeholder="請描述異常位置、現象及目前狀況"></textarea>
+
+    <label for="incidentPhoto">現場照片（選填）</label>
+    <input id="incidentPhoto" type="file" accept="image/*" capture="environment">
+
+    <div id="photoPreviewWrap" class="photo-preview hidden">
+      <img id="photoPreview" alt="照片預覽">
+      <button id="removePhotoBtn" class="text-btn" type="button">移除照片</button>
+    </div>
+
+    <button id="submitIncidentBtn" class="btn danger">送出異常回報</button>
+    <div id="incidentMessage"></div>
+  </section>
+
+  <section id="correctionView" class="card hidden">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">紀錄補登</div>
+        <h2>漏簽補登</h2>
+      </div>
+      <button id="correctionBackBtn" class="text-btn">返回</button>
+    </div>
+
+    <label for="correctionType">補登類型</label>
+    <select id="correctionType">
+      <option value="">請選擇</option>
+      <option value="上班">上班漏簽</option>
+      <option value="巡查">巡查漏簽</option>
+      <option value="下班">下班漏簽</option>
+    </select>
+
+    <div class="form-two">
+      <div>
+        <label for="correctionDate">日期</label>
+        <input id="correctionDate" type="date">
+      </div>
+      <div>
+        <label for="correctionTime">時間</label>
+        <input id="correctionTime" type="time">
+      </div>
+    </div>
+
+    <div id="correctionCheckpointWrap" class="hidden">
+      <label for="correctionCheckpoint">巡查點</label>
+      <select id="correctionCheckpoint">
+        <option value="">請選擇</option>
+        <option value="南區綜合大樓A棟1樓">南區綜合大樓A棟1樓</option>
+        <option value="南區綜合大樓B棟1樓">南區綜合大樓B棟1樓</option>
+        <option value="南區綜合大樓C棟1樓">南區綜合大樓C棟1樓</option>
+        <option value="新創大樓">新創大樓</option>
+        <option value="鴻海大樓">鴻海大樓</option>
+      </select>
+    </div>
+
+    <label for="correctionReason">補登原因</label>
+    <textarea id="correctionReason" rows="4" placeholder="請說明漏簽原因"></textarea>
+
+    <button id="submitCorrectionBtn" class="btn correction-submit">送出補登</button>
+    <div id="correctionMessage"></div>
+
+    <div class="section-head list-head">
+      <h3>我的補登紀錄</h3>
+      <button id="refreshCorrectionsBtn" class="text-btn">重新整理</button>
+    </div>
+    <div id="correctionList" class="records-list"></div>
+  </section>
+
+  <footer>經濟部產業園區管理局｜高雄軟體園區</footer>
+
+</main>
+
+<div id="successModal" class="modal hidden">
+  <div class="modal-card">
+    <div class="success-icon">✓</div>
+    <h2 id="successTitle">操作完成</h2>
+    <p id="successText">—</p>
+    <button id="successCloseBtn" class="btn primary">確定</button>
+  </div>
+</div>
+
+<script src="./config.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>

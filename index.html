@@ -9,7 +9,7 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=20260929-gps16">
+  <link rel="stylesheet" href="./styles.css?v=20260929-gps16hotfix">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <title>高雄軟體園區保全勤務簽到系統</title>
 </head>
@@ -45,10 +45,17 @@
     <div id="loginMessage"></div>
 
     <div class="admin-divider"><span>管理功能</span></div>
-    <a class="btn roster-link" href="./roster-import.html">
-      📥 匯入班表
-      <small>Excel／CSV</small>
-    </a>
+    <div class="admin-links">
+      <a class="btn roster-link" href="./roster-import.html">
+        📥 匯入班表
+        <small>Excel／CSV／PDF</small>
+      </a>
+
+      <a class="btn gps-admin-link" href="./checkpoint-gps.html">
+        📍 巡查點 GPS 定位設定
+        <small>A01／B01／C01／N01／F01</small>
+      </a>
+    </div>
   </section>
 
   <section id="mainView" class="hidden">
@@ -331,6 +338,6 @@
 </div>
 
 <script src="./config.js"></script>
-<script src="./app.js?v=20260929-gps16"></script>
+<script src="./app.js?v=20260929-gps16hotfix"></script>
 </body>
 </html>

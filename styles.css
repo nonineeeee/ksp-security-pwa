@@ -836,3 +836,25 @@ footer{text-align:center;color:#66849b;font-size:11px;padding:15px}
     grid-template-columns:1fr;
   }
 }
+
+
+/* ===== 第16步 Hotfix：管理入口明顯化 ===== */
+.admin-links{
+  display:grid;
+  gap:9px;
+}
+.gps-admin-link{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:2px;
+  min-height:56px;
+  background:linear-gradient(135deg,#124668,#17658f);
+  border:1px solid #3d86b1;
+  color:#fff;
+}
+.gps-admin-link small{
+  color:#c8e9fa;
+  font-size:10px;
+}

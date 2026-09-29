@@ -1,5 +1,5 @@
 
-const CACHE_NAME='ksp-security-fresh-pwa-checkpoint-gps-v1';
+const CACHE_NAME='ksp-security-fresh-pwa-checkpoint-gps-hotfix-v1';
 
 const STATIC_ASSETS=[
   './manifest.json',

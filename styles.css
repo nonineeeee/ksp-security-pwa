@@ -68,3 +68,142 @@ input:focus,select:focus,textarea:focus{border-color:#48a8e8;box-shadow:0 0 0 3p
 footer{text-align:center;color:#66849b;font-size:11px;padding:15px}
 .modal{position:fixed;z-index:1000;inset:0;background:rgba(0,0,0,.72);display:grid;place-items:center;padding:20px}.modal-card{width:min(420px,100%);padding:24px;background:#102a43;border:1px solid #386689;border-radius:22px;text-align:center}.success-icon{width:62px;height:62px;margin:0 auto 12px;display:grid;place-items:center;border-radius:50%;background:#168a5a;font-size:34px;font-weight:900}
 @media(max-width:430px){.app{padding:10px}.card{padding:15px}.form-two{grid-template-columns:1fr}.hero{padding:15px}.actions{gap:8px}}
+
+
+/* ===== PDF 班表轉換 ===== */
+.pdf-toolbar,
+.pdf-action-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:9px;
+}
+.pdf-tool-btn{
+  margin-top:0;
+}
+.pdf-preview-wrap{
+  overflow:auto;
+  margin-top:12px;
+  padding:8px;
+  border:1px solid #315a79;
+  border-radius:16px;
+  background:#e5e7eb;
+}
+#pdfCanvas{
+  display:block;
+  width:100%;
+  height:auto;
+  background:#fff;
+}
+.staff-map{
+  display:grid;
+  gap:7px;
+  margin-top:12px;
+}
+.staff-map-head,
+.staff-map-row{
+  display:grid;
+  grid-template-columns:42px 110px 1fr;
+  gap:7px;
+  align-items:center;
+}
+.staff-map-head{
+  color:#90a9bd;
+  font-size:11px;
+  font-weight:900;
+}
+.staff-map-row input{
+  margin:0;
+  padding:10px;
+}
+.staff-map-row b{
+  text-align:center;
+}
+.pdf-grid-wrap{
+  overflow:auto;
+  margin-top:12px;
+  border:1px solid #315a79;
+  border-radius:14px;
+  background:#071a2a;
+  max-height:520px;
+}
+.pdf-grid{
+  border-collapse:separate;
+  border-spacing:0;
+  min-width:max-content;
+  font-size:11px;
+}
+.pdf-grid th,
+.pdf-grid td{
+  min-width:38px;
+  height:42px;
+  padding:2px;
+  border-right:1px solid #27465e;
+  border-bottom:1px solid #27465e;
+  text-align:center;
+  background:#0a1d2d;
+}
+.pdf-grid thead th{
+  position:sticky;
+  top:0;
+  z-index:3;
+  background:#163c59;
+  color:#fff;
+}
+.pdf-grid .sticky-person{
+  position:sticky;
+  left:0;
+  z-index:2;
+  min-width:105px;
+  background:#102b45;
+}
+.pdf-grid thead .sticky-person{
+  z-index:4;
+}
+.pdf-grid .sticky-person small{
+  display:block;
+  color:#9fb5c8;
+  font-weight:400;
+  margin-top:2px;
+}
+.shift-cell{
+  width:34px;
+  height:34px;
+  border-radius:9px;
+  border:1px solid transparent;
+  color:#fff;
+  font-weight:900;
+  background:#334155;
+}
+.shift-a{
+  background:#135e8a;
+}
+.shift-b{
+  background:#5a3d86;
+}
+.shift-off{
+  color:#94a3b8;
+  background:#182633;
+}
+.low-confidence{
+  border:2px solid #f2b43c;
+  box-shadow:0 0 0 2px rgba(242,180,60,.15);
+}
+.checkline{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  margin-top:14px;
+}
+.checkline input{
+  width:auto;
+}
+@media(max-width:430px){
+  .pdf-toolbar,
+  .pdf-action-grid{
+    grid-template-columns:1fr;
+  }
+  .staff-map-head,
+  .staff-map-row{
+    grid-template-columns:34px 90px 1fr;
+  }
+}

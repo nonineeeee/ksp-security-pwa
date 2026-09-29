@@ -591,3 +591,94 @@ footer{text-align:center;color:#66849b;font-size:11px;padding:15px}
     text-align:left;
   }
 }
+
+
+/* ===== 巡查進度收合版 ===== */
+.patrol-progress{
+  padding:0;
+  overflow:hidden;
+}
+.patrol-progress-toggle{
+  display:block;
+  width:100%;
+  margin:0;
+  padding:12px 13px;
+  border:0;
+  background:transparent;
+  color:inherit;
+  text-align:left;
+  cursor:pointer;
+}
+.patrol-progress-summary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.patrol-progress-summary > div:first-child{
+  min-width:0;
+}
+#patrolProgressSummaryText{
+  display:block;
+  margin-top:2px;
+  font-size:13px;
+  color:#d8e8f3;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.patrol-progress-summary-right{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-shrink:0;
+}
+.progress-arrow{
+  width:24px;
+  text-align:center;
+  font-size:20px;
+  line-height:1;
+  color:#8fc7e8;
+}
+.compact-progress-bar{
+  height:5px;
+  margin:9px 0 0;
+}
+.patrol-progress-detail{
+  padding:0 13px 13px;
+  border-top:1px solid rgba(88,126,153,.24);
+}
+.patrol-progress-detail.hidden{
+  display:none!important;
+}
+.patrol-progress-collapsed{
+  margin-top:10px;
+}
+.patrol-progress-expanded .patrol-progress-toggle{
+  background:#0b2235;
+}
+.patrol-progress-expanded .patrol-progress-detail{
+  animation:patrolExpand .16s ease-out;
+}
+@keyframes patrolExpand{
+  from{
+    opacity:0;
+    transform:translateY(-4px);
+  }
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
+}
+.patrol-progress-collapsed .hourly-rule-note,
+.patrol-progress-collapsed .hourly-patrol-list{
+  display:none;
+}
+
+/* 簽到首頁盡量緊湊 */
+#mainView .patrol-progress{
+  margin-bottom:10px;
+}
+#mainView .info-grid{
+  margin-top:10px;
+}

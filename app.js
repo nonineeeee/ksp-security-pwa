@@ -50,6 +50,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('torchBtn').addEventListener('click',toggleTorch);
   $('continueScanBtn').addEventListener('click',continueScanning);
 
+  $('patrolProgressToggle').addEventListener('click',togglePatrolProgress);
+
   $('recordsBtn').addEventListener('click',openRecords);
   $('recordsBackBtn').addEventListener('click',()=>showView('mainView'));
   $('refreshRecordsBtn').addEventListener('click',loadTodayRecords);
@@ -482,12 +484,56 @@ function setActionButtonState(id,disabled,reason=''){
 
 
 
+
+function togglePatrolProgress(){
+  const detail=$('patrolProgressDetail');
+  const toggle=$('patrolProgressToggle');
+  const arrow=$('patrolProgressArrow');
+  const card=$('patrolProgressCard');
+
+  if(!detail || !toggle || !arrow || !card){
+    return;
+  }
+
+  const opening=
+    detail.classList.contains('hidden');
+
+  detail.classList.toggle(
+    'hidden',
+    !opening
+  );
+
+  toggle.setAttribute(
+    'aria-expanded',
+    opening
+      ? 'true'
+      : 'false'
+  );
+
+  arrow.textContent=
+    opening
+      ? '⌃'
+      : '⌄';
+
+  card.classList.toggle(
+    'patrol-progress-collapsed',
+    !opening
+  );
+
+  card.classList.toggle(
+    'patrol-progress-expanded',
+    opening
+  );
+}
+
+
 function renderHourlyPatrolProgress(){
   const box=$('hourlyPatrolList');
   const count=$('patrolProgressCount');
   const bar=$('patrolProgressBar');
+  const summary=$('patrolProgressSummaryText');
 
-  if(!box || !count || !bar){
+  if(!box || !count || !bar || !summary){
     return;
   }
 
@@ -496,6 +542,7 @@ function renderHourlyPatrolProgress(){
 
   if(!progress || !progress.duty){
     count.textContent='0 / 0';
+    summary.textContent='目前無巡查進度';
     bar.style.width='0%';
     box.innerHTML=
       '<div class="hourly-empty">目前沒有可顯示的勤務巡查時段。</div>';
@@ -510,6 +557,23 @@ function renderHourlyPatrolProgress(){
 
   count.textContent=
     `${completed} / ${required}`;
+
+  const missed=
+    Number(progress.missed||0);
+
+  const currentSlot=
+    Array.isArray(progress.slots)
+      ? progress.slots.find(x=>x.status==='current')
+      : null;
+
+  summary.textContent=
+    missed>0
+      ? `已完成 ${completed} 次｜漏簽 ${missed} 次`
+      : (
+        currentSlot
+          ? `已完成 ${completed} 次｜目前 ${currentSlot.startTime}–${currentSlot.endTime}`
+          : `已完成 ${completed} 次`
+      );
 
   bar.style.width=
     required

@@ -1,5 +1,5 @@
 
-const CACHE_NAME='ksp-security-fresh-pwa-hourly-progress-v1';
+const CACHE_NAME='ksp-security-fresh-pwa-hourly-collapse-v1';
 
 const STATIC_ASSETS=[
   './manifest.json',

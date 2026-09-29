@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b1f33">
+  <link rel="icon" href="./icon-192.png">
+  <link rel="stylesheet" href="./styles.css?v=20260929-gps16">
+  <title>高軟保全｜巡查點 GPS 定位設定</title>
+</head>
+<body>
+<main class="app">
+  <header class="hero">
+    <div class="logo">📍</div>
+    <div>
+      <h1>巡查點 GPS 定位設定</h1>
+      <p>實際 QR 張貼位置取樣，不使用推估座標</p>
+    </div>
+  </header>
+
+  <a class="btn dark" href="./roster-import.html">← 返回管理頁</a>
+
+  <section class="card api-card">
+    <div class="row">
+      <span>API 狀態</span>
+      <strong id="apiStatus" class="badge waiting">檢查中</strong>
+    </div>
+    <div id="apiDetail" class="api-detail"></div>
+  </section>
+
+  <section class="card">
+    <h2>設定方式</h2>
+    <div class="notice">
+      請拿手機實際站在各 QR Code 張貼位置，再按「現場定位」。
+      系統會收集多筆高精度 GPS 樣本，優先採用精度較佳的樣本平均值。
+    </div>
+
+    <div class="gps-warning">
+      <strong>重要：</strong>
+      建築物室內 GPS 可能漂移。建議定位時站在 QR 張貼點附近、靠近出入口或可接收衛星訊號的位置，
+      並等 GPS 精度穩定後再記錄。現有允許半徑先維持各巡查點工作表中的設定值（目前通常為 100 公尺）。
+    </div>
+
+    <button id="reloadBtn" class="btn outline">重新讀取 Google Sheet 設定</button>
+    <div id="topMessage"></div>
+  </section>
+
+  <section class="card">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">5個巡查點</div>
+        <h2>現場座標取樣</h2>
+      </div>
+      <span id="configuredCount" class="badge waiting">0 / 5 已設定</span>
+    </div>
+
+    <div id="checkpointCards" class="checkpoint-gps-list"></div>
+  </section>
+
+  <section class="card">
+    <h2>貼回 Google Sheet</h2>
+
+    <div class="notice">
+      打開正式資料庫 →「巡查點」工作表，將每個巡查點的緯度貼到 C 欄、經度貼到 D 欄。
+      E 欄為允許距離（公尺），建議先保留原本數值，再依現場實測調整。
+    </div>
+
+    <div class="gps-sheet-map">
+      <span>A：巡查點編號</span>
+      <span>B：名稱</span>
+      <span><b>C：緯度</b></span>
+      <span><b>D：經度</b></span>
+      <span>E：允許距離</span>
+      <span>F：QR</span>
+      <span>G：啟用狀態</span>
+    </div>
+
+    <button id="downloadCsvBtn" class="btn outline">下載本次定位 CSV</button>
+
+    <div id="sheetMessage"></div>
+  </section>
+
+  <footer>高雄軟體園區保全勤務系統｜巡查點 GPS 定位</footer>
+</main>
+
+<script src="./config.js"></script>
+<script src="./checkpoint-gps.js?v=20260929-gps16"></script>
+</body>
+</html>

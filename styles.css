@@ -207,3 +207,87 @@ footer{text-align:center;color:#66849b;font-size:11px;padding:15px}
     grid-template-columns:34px 90px 1fr;
   }
 }
+
+
+/* ===== QR 相機清晰度 + 成功後不黑屏 ===== */
+.reader-wrap{
+  position:relative;
+  margin-top:12px;
+  border-radius:18px;
+  overflow:hidden;
+  background:#06111c;
+}
+.reader-wrap #reader{
+  margin-top:0;
+}
+#reader video{
+  width:100%!important;
+  min-height:280px;
+  object-fit:cover!important;
+  background:#06111c;
+}
+.patrol-success-badge{
+  position:absolute;
+  left:12px;
+  right:12px;
+  bottom:12px;
+  z-index:20;
+  padding:12px 14px;
+  border-radius:14px;
+  border:1px solid rgba(88,214,151,.9);
+  background:rgba(8,79,50,.92);
+  box-shadow:0 8px 24px rgba(0,0,0,.28);
+  backdrop-filter:blur(7px);
+  -webkit-backdrop-filter:blur(7px);
+}
+.patrol-success-badge strong{
+  display:block;
+  color:#fff;
+  font-size:16px;
+}
+.patrol-success-badge span{
+  display:block;
+  margin-top:4px;
+  color:#d8fbea;
+  font-size:12px;
+  line-height:1.45;
+}
+.camera-controls{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:7px;
+  margin-top:8px;
+}
+.camera-btn{
+  min-height:42px;
+  padding:8px 5px;
+  border:1px solid #3b6889;
+  border-radius:12px;
+  background:#0a2940;
+  color:#e7f5ff;
+  font-size:12px;
+  font-weight:800;
+}
+.camera-btn.active{
+  border-color:#63c5ff;
+  background:#11527b;
+  box-shadow:0 0 0 2px rgba(99,197,255,.15);
+}
+.camera-btn.camera-disabled{
+  opacity:.38;
+}
+#continueScanBtn{
+  margin-top:9px;
+  background:linear-gradient(135deg,#15845a,#20a86d);
+}
+
+/* 成功視窗若用於其他功能，減少黑色遮罩感 */
+.modal{
+  background:rgba(6,17,28,.38);
+}
+
+@media(max-width:560px){
+  .camera-controls{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}

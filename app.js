@@ -3,6 +3,11 @@ let currentPerson=null;
 let currentDuty=null;
 let scanner=null;
 let scanBusy=false;
+let cameraTrack=null;
+let cameraCapabilities=null;
+let currentZoom=1;
+let torchOn=false;
+let scannerPausedAfterSuccess=false;
 
 const $=id=>document.getElementById(id);
 
@@ -18,6 +23,12 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('patrolBtn').addEventListener('click',openPatrol);
   $('patrolBackBtn').addEventListener('click',()=>showView('mainView'));
   $('manualQrBtn').addEventListener('click',()=>processQr($('manualQr').value));
+  $('refocusBtn').addEventListener('click',refocusCamera);
+  $('zoom1Btn').addEventListener('click',()=>setCameraZoom(1));
+  $('zoom15Btn').addEventListener('click',()=>setCameraZoom(1.5));
+  $('zoom2Btn').addEventListener('click',()=>setCameraZoom(2));
+  $('torchBtn').addEventListener('click',toggleTorch);
+  $('continueScanBtn').addEventListener('click',continueScanning);
 
   $('recordsBtn').addEventListener('click',openRecords);
   $('recordsBackBtn').addEventListener('click',()=>showView('mainView'));
@@ -146,8 +157,8 @@ async function checkApi(){
   try{
     const r=await apiCall('ping',{});
 
-    if(!String(r.version||'').startsWith('fresh-v1')){
-      throw new Error(`API 版本不符：${r.version||'未知'}`);
+    if(r.service !== 'KSP Security Fresh API'){
+      throw new Error(`API服務不符：${r.service||'未知'}`);
     }
 
     b.className='badge ok';
@@ -300,7 +311,11 @@ function openPatrol(){
   showView('patrolView');
   $('manualQr').value='';
   $('pointCard').classList.add('hidden');
+  $('patrolSuccessBadge').classList.add('hidden');
+  $('continueScanBtn').classList.add('hidden');
+  $('cameraControls').classList.add('hidden');
   status('patrolMessage','');
+  scannerPausedAfterSuccess=false;
   startScanner();
 }
 
@@ -324,6 +339,14 @@ function normalizeQr(raw){
 async function startScanner(){
   await stopScanner();
   scanBusy=false;
+  scannerPausedAfterSuccess=false;
+  currentZoom=1;
+  torchOn=false;
+
+  $('patrolSuccessBadge').classList.add('hidden');
+  $('continueScanBtn').classList.add('hidden');
+  $('cameraControls').classList.add('hidden');
+  $('cameraStatus').textContent='正在啟動後置鏡頭…';
 
   if(typeof Html5Qrcode==='undefined'){
     $('cameraStatus').textContent='QR掃描元件載入失敗，可使用手動輸入。';
@@ -333,35 +356,307 @@ async function startScanner(){
   try{
     scanner=new Html5Qrcode('reader',{
       formatsToSupport:[Html5QrcodeSupportedFormats.QR_CODE],
-      useBarCodeDetectorIfSupported:true
+      useBarCodeDetectorIfSupported:true,
+      verbose:false
     });
 
+    let cameraConfig={facingMode:{ideal:'environment'}};
+
+    // 優先選擇明確標示為後置鏡頭的裝置。
+    try{
+      const cameras=await Html5Qrcode.getCameras();
+
+      if(Array.isArray(cameras) && cameras.length){
+        const rear=
+          cameras.find(c=>
+            /back|rear|environment|後置|背面/i.test(String(c.label||''))
+          ) ||
+          cameras[cameras.length-1];
+
+        if(rear?.id){
+          cameraConfig=rear.id;
+        }
+      }
+    }catch(e){}
+
     await scanner.start(
-      {facingMode:'environment'},
+      cameraConfig,
       {
-        fps:12,
+        fps:15,
         qrbox:(w,h)=>{
-          const s=Math.max(210,Math.min(310,Math.floor(Math.min(w,h)*.72)));
+          const minSide=Math.min(w,h);
+          const s=Math.max(
+            220,
+            Math.min(
+              340,
+              Math.floor(minSide*.72)
+            )
+          );
           return {width:s,height:s};
         },
+        aspectRatio:1.7777778,
         disableFlip:true
       },
       text=>{
-        if(scanBusy)return;
+        if(scanBusy || scannerPausedAfterSuccess)return;
         scanBusy=true;
         processQr(text);
       },
       ()=>{}
     );
 
-    $('cameraStatus').textContent='後置鏡頭已啟動';
+    await prepareCameraTrack();
+
+    $('cameraStatus').textContent='後置鏡頭已啟動｜連續自動對焦';
+    $('cameraControls').classList.remove('hidden');
 
   }catch(e){
+    console.warn('camera start error',e);
     $('cameraStatus').textContent='無法啟動相機，可改用手動輸入 QR 識別碼。';
   }
 }
 
+
+async function prepareCameraTrack(){
+  cameraTrack=null;
+  cameraCapabilities=null;
+
+  // html5-qrcode 啟動後，直接取得實際 video track。
+  const video=$('reader')?.querySelector('video');
+
+  if(!video)return;
+
+  video.setAttribute('playsinline','true');
+  video.setAttribute('autoplay','true');
+  video.style.objectFit='cover';
+
+  const stream=video.srcObject;
+
+  if(!stream || !stream.getVideoTracks)return;
+
+  cameraTrack=stream.getVideoTracks()[0] || null;
+
+  if(!cameraTrack)return;
+
+  try{
+    cameraCapabilities=
+      typeof cameraTrack.getCapabilities==='function'
+        ? cameraTrack.getCapabilities()
+        : null;
+  }catch(e){
+    cameraCapabilities=null;
+  }
+
+  const advanced=[];
+
+  if(cameraCapabilities?.focusMode?.includes?.('continuous')){
+    advanced.push({focusMode:'continuous'});
+  }
+
+  // 請求較高解析度；手機不支援時瀏覽器會自動降級。
+  try{
+    await cameraTrack.applyConstraints({
+      width:{ideal:1920},
+      height:{ideal:1080},
+      frameRate:{ideal:30,min:15},
+      ...(advanced.length?{advanced}: {})
+    });
+  }catch(e){
+    // 有些 iPhone/Safari 不接受 width/height 與 focusMode 同時設定。
+    try{
+      if(advanced.length){
+        await cameraTrack.applyConstraints({advanced});
+      }
+    }catch(ignore){}
+  }
+
+  updateCameraControlAvailability();
+}
+
+
+function updateCameraControlAvailability(){
+  const zoomSupported=
+    cameraCapabilities &&
+    typeof cameraCapabilities.zoom==='object';
+
+  ['zoom1Btn','zoom15Btn','zoom2Btn'].forEach(id=>{
+    const el=$(id);
+    if(el){
+      el.disabled=!zoomSupported;
+      el.classList.toggle('camera-disabled',!zoomSupported);
+    }
+  });
+
+  const torchSupported=!!cameraCapabilities?.torch;
+  $('torchBtn').classList.toggle('hidden',!torchSupported);
+}
+
+
+async function refocusCamera(){
+  if(!cameraTrack){
+    $('cameraStatus').textContent='目前無法取得鏡頭控制。';
+    return;
+  }
+
+  $('cameraStatus').textContent='正在重新對焦…';
+
+  try{
+    const caps=
+      cameraCapabilities ||
+      (
+        typeof cameraTrack.getCapabilities==='function'
+          ? cameraTrack.getCapabilities()
+          : {}
+      );
+
+    if(caps?.focusMode?.includes?.('single-shot')){
+      await cameraTrack.applyConstraints({
+        advanced:[{focusMode:'single-shot'}]
+      });
+
+      await new Promise(r=>setTimeout(r,350));
+    }
+
+    if(caps?.focusMode?.includes?.('continuous')){
+      await cameraTrack.applyConstraints({
+        advanced:[{focusMode:'continuous'}]
+      });
+    }else{
+      // 不支援 focusMode 的瀏覽器，用微幅重新套用 constraints 觸發相機重新測光/對焦。
+      const settings=
+        typeof cameraTrack.getSettings==='function'
+          ? cameraTrack.getSettings()
+          : {};
+
+      await cameraTrack.applyConstraints({
+        width:{ideal:settings.width||1920},
+        height:{ideal:settings.height||1080}
+      });
+    }
+
+    $('cameraStatus').textContent='已重新對焦，請保持 QR Code 穩定約 1 秒。';
+
+  }catch(e){
+    $('cameraStatus').textContent='此手機不支援手動重新對焦，請將 QR Code 前後移動約 5～10 公分。';
+  }
+}
+
+
+async function setCameraZoom(value){
+  if(!cameraTrack || !cameraCapabilities?.zoom){
+    $('cameraStatus').textContent='此手機瀏覽器不支援程式控制變焦。';
+    return;
+  }
+
+  const min=Number(cameraCapabilities.zoom.min ?? 1);
+  const max=Number(cameraCapabilities.zoom.max ?? 1);
+  const zoom=Math.max(min,Math.min(max,Number(value)));
+
+  try{
+    await cameraTrack.applyConstraints({
+      advanced:[{zoom}]
+    });
+
+    currentZoom=zoom;
+
+    document.querySelectorAll('.zoom-btn').forEach(btn=>{
+      btn.classList.remove('active');
+    });
+
+    const target=
+      Math.abs(zoom-1)<.15
+        ? 'zoom1Btn'
+        : (
+          Math.abs(zoom-1.5)<.25
+            ? 'zoom15Btn'
+            : 'zoom2Btn'
+        );
+
+    $(target)?.classList.add('active');
+
+    $('cameraStatus').textContent=`鏡頭 ${zoom.toFixed(1)}×｜請保持 QR Code 清晰穩定`;
+
+  }catch(e){
+    $('cameraStatus').textContent='變焦調整失敗，請使用手機實體距離調整。';
+  }
+}
+
+
+async function toggleTorch(){
+  if(!cameraTrack || !cameraCapabilities?.torch)return;
+
+  torchOn=!torchOn;
+
+  try{
+    await cameraTrack.applyConstraints({
+      advanced:[{torch:torchOn}]
+    });
+
+    $('torchBtn').textContent=
+      torchOn
+        ? '🔦 關閉補光'
+        : '🔦 補光';
+
+  }catch(e){
+    torchOn=false;
+    $('cameraStatus').textContent='此裝置目前無法控制補光燈。';
+  }
+}
+
+
+function pauseScannerKeepVideo(){
+  scannerPausedAfterSuccess=true;
+  scanBusy=true;
+
+  // false = 停止 QR 解碼，但 video 保持播放，不黑屏。
+  try{
+    if(scanner && typeof scanner.pause==='function'){
+      scanner.pause(false);
+    }
+  }catch(e){}
+
+  $('cameraStatus').textContent='巡查完成｜鏡頭保持開啟';
+  $('continueScanBtn').classList.remove('hidden');
+}
+
+
+async function continueScanning(){
+  $('patrolSuccessBadge').classList.add('hidden');
+  $('continueScanBtn').classList.add('hidden');
+  $('pointCard').classList.add('hidden');
+  $('manualQr').value='';
+  status('patrolMessage','請掃描下一個巡查點 QR Code。','info');
+
+  scannerPausedAfterSuccess=false;
+  scanBusy=false;
+
+  try{
+    if(scanner && typeof scanner.resume==='function'){
+      scanner.resume();
+      $('cameraStatus').textContent='後置鏡頭已啟動｜請掃描下一巡查點';
+    }else if(!scanner){
+      await startScanner();
+    }
+  }catch(e){
+    await startScanner();
+  }
+}
+
+
 async function stopScanner(){
+  scannerPausedAfterSuccess=false;
+  scanBusy=false;
+
+  if(cameraTrack){
+    try{
+      if(torchOn && cameraCapabilities?.torch){
+        await cameraTrack.applyConstraints({
+          advanced:[{torch:false}]
+        });
+      }
+    }catch(e){}
+  }
+
   if(scanner){
     try{
       if(scanner.isScanning)await scanner.stop();
@@ -370,10 +665,23 @@ async function stopScanner(){
     scanner=null;
   }
 
+  cameraTrack=null;
+  cameraCapabilities=null;
+  torchOn=false;
+
   if($('reader')){
     $('reader').innerHTML='';
   }
+
+  if($('cameraControls')){
+    $('cameraControls').classList.add('hidden');
+  }
+
+  if($('continueScanBtn')){
+    $('continueScanBtn').classList.add('hidden');
+  }
 }
+
 
 async function processQr(raw){
   if(!currentPerson){
@@ -412,14 +720,24 @@ async function processQr(raw){
       lng:gps.lng
     });
 
-    await stopScanner();
+    // 成功後只暫停 QR 辨識，保留鏡頭即時畫面，不再黑屏。
+    pauseScannerKeepVideo();
 
-    showSuccess(
-      '巡查完成',
-      `${r.checkpoint?.name||'巡查點'}\n時間：${r.serverTime}\nGPS距離：約 ${r.distance} 公尺`
+    const successText=
+      `${r.checkpoint?.name||'巡查點'}｜GPS 約 ${r.distance} 公尺`;
+
+    $('patrolSuccessText').textContent=successText;
+    $('patrolSuccessBadge').classList.remove('hidden');
+
+    if(navigator.vibrate){
+      navigator.vibrate([120,60,120]);
+    }
+
+    status(
+      'patrolMessage',
+      `${r.message} 時間：${r.serverTime}`,
+      'ok'
     );
-
-    status('patrolMessage',r.message,'ok');
 
   }catch(e){
     status('patrolMessage',e.message,'err');

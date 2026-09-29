@@ -9,7 +9,7 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?v=20260929-camera1">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <title>高雄軟體園區保全勤務簽到系統</title>
 </head>
@@ -109,11 +109,31 @@
     </div>
 
     <div class="notice">
-      請掃描巡查點 QR Code。系統辨識後會取得 GPS 並送出巡查紀錄。
+      請將 QR Code 保持在鏡頭前約 20～35 公分並穩定 1 秒。
+      若畫面模糊，可按「重新對焦」；手機支援時也可使用 1.5×／2×。
     </div>
 
-    <div id="reader"></div>
+    <div class="reader-wrap">
+      <div id="reader"></div>
+      <div id="patrolSuccessBadge" class="patrol-success-badge hidden">
+        <strong>✓ 巡查完成</strong>
+        <span id="patrolSuccessText">—</span>
+      </div>
+    </div>
+
     <div id="cameraStatus" class="camera-status">相機尚未啟動</div>
+
+    <div id="cameraControls" class="camera-controls hidden">
+      <button id="refocusBtn" class="camera-btn">🎯 重新對焦</button>
+      <button id="zoom1Btn" class="camera-btn zoom-btn">1×</button>
+      <button id="zoom15Btn" class="camera-btn zoom-btn">1.5×</button>
+      <button id="zoom2Btn" class="camera-btn zoom-btn">2×</button>
+      <button id="torchBtn" class="camera-btn hidden">🔦 補光</button>
+    </div>
+
+    <button id="continueScanBtn" class="btn primary hidden">
+      ▶ 繼續掃描下一巡查點
+    </button>
 
     <div id="pointCard" class="point hidden">
       <strong id="pointName">—</strong>
@@ -259,6 +279,6 @@
 </div>
 
 <script src="./config.js"></script>
-<script src="./app.js"></script>
+<script src="./app.js?v=20260929-camera1"></script>
 </body>
 </html>

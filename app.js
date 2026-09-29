@@ -452,8 +452,8 @@ function renderDutyDashboard(){
   const progress=todayDutyState.patrolProgress;
 
   patrolChip.textContent=
-    progress && progress.required
-      ? `本班巡查 ${progress.completed||0} / ${progress.required}`
+    progress && Number(progress.requiredChecks||0)>0
+      ? `定點完成 ${progress.completedChecks||0} / ${progress.requiredChecks}`
       : `巡查紀錄 ${todayDutyState.patrolCount} 筆`;
 
   lastChip.textContent=
@@ -549,35 +549,47 @@ function renderHourlyPatrolProgress(){
     return;
   }
 
-  const required=
-    Number(progress.required||0);
+  const requiredChecks=
+    Number(
+      progress.requiredChecks||0
+    );
 
-  const completed=
-    Number(progress.completed||0);
+  const completedChecks=
+    Number(
+      progress.completedChecks||0
+    );
+
+  const missedChecks=
+    Number(
+      progress.missedChecks||0
+    );
 
   count.textContent=
-    `${completed} / ${required}`;
-
-  const missed=
-    Number(progress.missed||0);
+    `${completedChecks} / ${requiredChecks}`;
 
   const currentSlot=
     Array.isArray(progress.slots)
-      ? progress.slots.find(x=>x.status==='current')
+      ? progress.slots.find(
+          x=>x.status==='current'
+        )
       : null;
 
   summary.textContent=
-    missed>0
-      ? `已完成 ${completed} 次｜漏簽 ${missed} 次`
+    missedChecks>0
+      ? `已完成 ${completedChecks} 點次｜漏簽 ${missedChecks} 點次`
       : (
         currentSlot
-          ? `已完成 ${completed} 次｜目前 ${currentSlot.startTime}–${currentSlot.endTime}`
-          : `已完成 ${completed} 次`
+          ? `目前 ${currentSlot.startTime}–${currentSlot.endTime}｜${currentSlot.completedPoints||0}/5`
+          : `已完成 ${completedChecks} / ${requiredChecks} 點次`
       );
 
   bar.style.width=
-    required
-      ? `${Math.round(completed/required*100)}%`
+    requiredChecks
+      ? `${Math.round(
+          completedChecks /
+          requiredChecks *
+          100
+        )}%`
       : '0%';
 
   const slots=
@@ -587,40 +599,50 @@ function renderHourlyPatrolProgress(){
 
   box.innerHTML=
     slots.map(slot=>{
-      const classes=[
-        'hourly-patrol-row',
-        `hourly-${slot.status||'future'}`
-      ].join(' ');
-
       let icon='○';
-      let label='未到時段';
+      let headline='未到時段';
 
       if(slot.status==='done'){
         icon='✓';
-        label=
-          `完成 ${esc(slot.patrolTime||'')}`+
-          (
-            slot.checkpointId
-              ? `｜${esc(slot.checkpointId)}`
-              : ''
-          );
+        headline='5 / 5 完成';
       }
 
       if(slot.status==='current'){
         icon='●';
-        label='本時段待簽到';
+        headline=
+          `${slot.completedPoints||0} / 5`;
       }
 
       if(slot.status==='missed'){
         icon='!';
-        label='未簽到';
+        headline=
+          `${slot.completedPoints||0} / 5｜缺 ${esc((slot.missingPoints||[]).join('、'))}`;
       }
 
       if(slot.status==='exempt'){
         icon='－';
-        label=
+        headline=
           `免簽｜${esc(slot.exemptReason||'')}`;
       }
+
+      const points=
+        Array.isArray(slot.points)
+          ? slot.points
+          : [];
+
+      const pointHtml=
+        slot.status==='exempt'
+          ? ''
+          : `
+            <div class="hourly-point-grid">
+              ${points.map(p=>`
+                <span class="hourly-point ${p.done?'point-done':'point-pending'}">
+                  <b>${esc(p.id)}</b>
+                  <small>${p.done?'✓ '+esc(p.time||''):'待巡'}</small>
+                </span>
+              `).join('')}
+            </div>
+          `;
 
       const dateText=
         slot.startDate===slot.endDate
@@ -628,13 +650,17 @@ function renderHourlyPatrolProgress(){
           : `${esc(slot.startDate)} `;
 
       return `
-        <div class="${classes}">
+        <div class="hourly-patrol-row hourly-${slot.status||'future'}">
           <span class="hourly-state">${icon}</span>
+
           <div class="hourly-time">
             <strong>${dateText}${esc(slot.startTime)}–${esc(slot.endTime)}</strong>
             <small>${slot.dayType?esc(slot.dayType):''}</small>
           </div>
-          <span class="hourly-result">${label}</span>
+
+          <span class="hourly-result">${headline}</span>
+
+          ${pointHtml}
         </div>
       `;
     }).join('');
@@ -1073,7 +1099,17 @@ async function processQr(raw){
     $('pointCard').classList.remove('hidden');
     $('pointName').textContent=cp.name||cp.checkpointId;
     $('pointCode').textContent=`${cp.checkpointId}｜${cp.qr}`;
-    $('maxDistance').textContent=`${cp.radius||350} 公尺`;
+    $('maxDistance').textContent=`${cp.radius||100} 公尺`;
+    $('checkpointGpsState').textContent=
+      cp.gpsConfigured
+        ? '已設定'
+        : '尚未設定';
+
+    if(!cp.gpsConfigured){
+      throw new Error(
+        `${cp.checkpointId} 尚未設定專屬 GPS 座標，請先完成巡查點定位設定。`
+      );
+    }
 
     status('patrolMessage','QR辨識成功，正在取得 GPS…','info');
 

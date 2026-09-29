@@ -9,7 +9,7 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=20260929-collapse1">
+  <link rel="stylesheet" href="./styles.css?v=20260929-gps16">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <title>高雄軟體園區保全勤務簽到系統</title>
 </head>
@@ -93,7 +93,7 @@
         >
           <div class="patrol-progress-summary">
             <div>
-              <div class="eyebrow">本班巡查進度</div>
+              <div class="eyebrow">本班每小時巡查進度</div>
               <strong id="patrolProgressSummaryText">讀取中…</strong>
             </div>
             <div class="patrol-progress-summary-right">
@@ -109,8 +109,8 @@
 
         <div id="patrolProgressDetail" class="patrol-progress-detail hidden">
           <div class="hourly-rule-note">
-            <strong>每小時巡查1次。</strong><br>
-            平日免簽：08–09、12–13、17–18；假日免簽：12–13。
+            <strong>每個應巡查小時，5個定點都要完成。</strong><br>
+            每小時須完成 A01／B01／C01／N01／F01。平日免簽：08–09、12–13、17–18；假日免簽：12–13。
           </div>
 
           <div id="hourlyPatrolList" class="hourly-patrol-list">
@@ -191,6 +191,7 @@
       <small id="pointCode">—</small>
       <div class="info-grid compact">
         <div class="info-item"><span>允許距離</span><strong id="maxDistance">—</strong></div>
+        <div class="info-item"><span>定點GPS</span><strong id="checkpointGpsState">—</strong></div>
         <div class="info-item"><span>GPS精度</span><strong id="gpsAccuracy">—</strong></div>
       </div>
     </div>
@@ -330,6 +331,6 @@
 </div>
 
 <script src="./config.js"></script>
-<script src="./app.js?v=20260929-collapse1"></script>
+<script src="./app.js?v=20260929-gps16"></script>
 </body>
 </html>

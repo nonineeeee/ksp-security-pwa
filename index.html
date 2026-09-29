@@ -9,7 +9,7 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=20260929-progress1">
+  <link rel="stylesheet" href="./styles.css?v=20260929-hourly1">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <title>高雄軟體園區保全勤務簽到系統</title>
 </head>
@@ -86,42 +86,23 @@
       <div class="patrol-progress">
         <div class="section-head patrol-progress-head">
           <div>
-            <div class="eyebrow">本班巡查進度</div>
-            <h3>5 個定點巡查</h3>
+            <div class="eyebrow">本班每小時巡查進度</div>
+            <h3 id="hourlyProgressTitle">每小時完成 1 次 QR＋GPS 巡查</h3>
           </div>
-          <strong id="patrolProgressCount" class="progress-count">0 / 5</strong>
+          <strong id="patrolProgressCount" class="progress-count">0 / 0</strong>
         </div>
 
         <div class="progress-bar">
           <div id="patrolProgressBar" class="progress-bar-fill" style="width:0%"></div>
         </div>
 
-        <div id="patrolProgressList" class="patrol-point-list">
-          <div class="patrol-point pending" data-point="A01">
-            <span class="point-state">○</span>
-            <div><strong>A01</strong><small>南區綜合大樓A棟1樓</small></div>
-            <span class="point-time">待巡查</span>
-          </div>
-          <div class="patrol-point pending" data-point="B01">
-            <span class="point-state">○</span>
-            <div><strong>B01</strong><small>南區綜合大樓B棟1樓</small></div>
-            <span class="point-time">待巡查</span>
-          </div>
-          <div class="patrol-point pending" data-point="C01">
-            <span class="point-state">○</span>
-            <div><strong>C01</strong><small>南區綜合大樓C棟1樓</small></div>
-            <span class="point-time">待巡查</span>
-          </div>
-          <div class="patrol-point pending" data-point="N01">
-            <span class="point-state">○</span>
-            <div><strong>N01</strong><small>新創大樓</small></div>
-            <span class="point-time">待巡查</span>
-          </div>
-          <div class="patrol-point pending" data-point="F01">
-            <span class="point-state">○</span>
-            <div><strong>F01</strong><small>鴻海大樓</small></div>
-            <span class="point-time">待巡查</span>
-          </div>
+        <div class="hourly-rule-note">
+          <strong>免巡查：</strong>
+          平日 08–09、12–13、17–18；假日 12–13。
+        </div>
+
+        <div id="hourlyPatrolList" class="hourly-patrol-list">
+          <div class="hourly-empty">正在讀取本班巡查時段…</div>
         </div>
       </div>
 
@@ -336,6 +317,6 @@
 </div>
 
 <script src="./config.js"></script>
-<script src="./app.js?v=20260929-progress1"></script>
+<script src="./app.js?v=20260929-hourly1"></script>
 </body>
 </html>

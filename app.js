@@ -13,17 +13,11 @@ let todayDutyState={
   clockedIn:false,
   clockedOut:false,
   patrolCount:0,
+  patrolProgress:null,
   lastAction:'',
   lastTime:''
 };
 
-const PATROL_POINTS=[
-  {id:'A01',name:'南區綜合大樓A棟1樓'},
-  {id:'B01',name:'南區綜合大樓B棟1樓'},
-  {id:'C01',name:'南區綜合大樓C棟1樓'},
-  {id:'N01',name:'新創大樓'},
-  {id:'F01',name:'鴻海大樓'}
-];
 
 const $=id=>document.getElementById(id);
 
@@ -343,52 +337,52 @@ async function refreshDutyDashboard(){
   }
 
   try{
-    const r=await apiCall('dutyRecords',{
-      personId:currentPerson.personId
-    });
+    const [recordsResult,progressResult]=await Promise.all([
+      apiCall('dutyRecords',{
+        personId:currentPerson.personId
+      }),
+      apiCall('dutyProgress',{
+        personId:currentPerson.personId
+      })
+    ]);
 
-    const records=Array.isArray(r.records)?r.records:[];
-    const actions=records.map(x=>String(x.action||''));
+    const records=
+      Array.isArray(recordsResult.records)
+        ? recordsResult.records
+        : [];
 
     const clockInRecord=
-      records.find(x=>String(x.action||'')==='上班簽到') || null;
+      records.find(
+        x=>String(x.action||'')==='上班簽到'
+      ) || null;
 
     const clockOutRecord=
-      records.find(x=>String(x.action||'')==='下班簽退') || null;
+      records.find(
+        x=>String(x.action||'')==='下班簽退'
+      ) || null;
 
     const patrolRecords=
-      records.filter(x=>String(x.action||'')==='定點巡查');
+      records.filter(
+        x=>String(x.action||'')==='定點巡查'
+      );
 
     const latest=
       records.length
         ? records[records.length-1]
         : null;
 
-    const patrolDone={};
-
-    patrolRecords.forEach(x=>{
-      const id=String(x.checkpointId||'').trim().toUpperCase();
-
-      if(id && !patrolDone[id]){
-        patrolDone[id]={
-          time:x.time||'',
-          date:x.date||''
-        };
-      }
-    });
-
     todayDutyState={
       hasDuty:!!currentDuty,
       clockedIn:!!clockInRecord,
       clockedOut:!!clockOutRecord,
-      patrolCount:Object.keys(patrolDone).length,
-      patrolDone:patrolDone,
+      patrolCount:patrolRecords.length,
+      patrolProgress:progressResult||null,
       lastAction:latest?.action||'',
       lastTime:latest?.time||''
     };
 
     renderDutyDashboard();
-    renderPatrolProgress();
+    renderHourlyPatrolProgress();
 
   }catch(e){
     todayDutyState={
@@ -396,16 +390,15 @@ async function refreshDutyDashboard(){
       clockedIn:false,
       clockedOut:false,
       patrolCount:0,
-      patrolDone:{},
+      patrolProgress:null,
       lastAction:'',
       lastTime:''
     };
 
     renderDutyDashboard();
-    renderPatrolProgress();
+    renderHourlyPatrolProgress();
   }
 }
-
 
 function renderDutyDashboard(){
   const panel=$('dutyStatusPanel');
@@ -454,8 +447,12 @@ function renderDutyDashboard(){
   icon.textContent=stateIcon;
   text.textContent=stateText;
 
+  const progress=todayDutyState.patrolProgress;
+
   patrolChip.textContent=
-    `已巡查 ${todayDutyState.patrolCount} 點`;
+    progress && progress.required
+      ? `本班巡查 ${progress.completed||0} / ${progress.required}`
+      : `巡查紀錄 ${todayDutyState.patrolCount} 筆`;
 
   lastChip.textContent=
     todayDutyState.lastAction
@@ -485,61 +482,99 @@ function setActionButtonState(id,disabled,reason=''){
 
 
 
-function renderPatrolProgress(){
-  const done=
-    todayDutyState.patrolDone || {};
+function renderHourlyPatrolProgress(){
+  const box=$('hourlyPatrolList');
+  const count=$('patrolProgressCount');
+  const bar=$('patrolProgressBar');
 
-  let completed=0;
+  if(!box || !count || !bar){
+    return;
+  }
 
-  PATROL_POINTS.forEach(point=>{
-    const row=
-      document.querySelector(
-        `.patrol-point[data-point="${point.id}"]`
-      );
+  const progress=
+    todayDutyState.patrolProgress;
 
-    if(!row)return;
+  if(!progress || !progress.duty){
+    count.textContent='0 / 0';
+    bar.style.width='0%';
+    box.innerHTML=
+      '<div class="hourly-empty">目前沒有可顯示的勤務巡查時段。</div>';
+    return;
+  }
 
-    const info=done[point.id];
-    const state=row.querySelector('.point-state');
-    const time=row.querySelector('.point-time');
+  const required=
+    Number(progress.required||0);
 
-    row.classList.remove(
-      'pending',
-      'done'
-    );
+  const completed=
+    Number(progress.completed||0);
 
-    if(info){
-      completed++;
-      row.classList.add('done');
-      state.textContent='✓';
-      time.textContent=
-        info.time
-          ? `完成 ${info.time}`
-          : '已完成';
-    }else{
-      row.classList.add('pending');
-      state.textContent='○';
-      time.textContent='待巡查';
-    }
-  });
+  count.textContent=
+    `${completed} / ${required}`;
 
-  const total=
-    PATROL_POINTS.length;
+  bar.style.width=
+    required
+      ? `${Math.round(completed/required*100)}%`
+      : '0%';
 
-  $('patrolProgressCount').textContent=
-    `${completed} / ${total}`;
+  const slots=
+    Array.isArray(progress.slots)
+      ? progress.slots
+      : [];
 
-  $('patrolProgressBar').style.width=
-    `${Math.round(
-      completed /
-      total *
-      100
-    )}%`;
+  box.innerHTML=
+    slots.map(slot=>{
+      const classes=[
+        'hourly-patrol-row',
+        `hourly-${slot.status||'future'}`
+      ].join(' ');
 
-  $('patrolCountChip').textContent=
-    `已巡查 ${completed} / ${total} 點`;
+      let icon='○';
+      let label='未到時段';
+
+      if(slot.status==='done'){
+        icon='✓';
+        label=
+          `完成 ${esc(slot.patrolTime||'')}`+
+          (
+            slot.checkpointId
+              ? `｜${esc(slot.checkpointId)}`
+              : ''
+          );
+      }
+
+      if(slot.status==='current'){
+        icon='●';
+        label='本時段待簽到';
+      }
+
+      if(slot.status==='missed'){
+        icon='!';
+        label='未簽到';
+      }
+
+      if(slot.status==='exempt'){
+        icon='－';
+        label=
+          `免簽｜${esc(slot.exemptReason||'')}`;
+      }
+
+      const dateText=
+        slot.startDate===slot.endDate
+          ? ''
+          : `${esc(slot.startDate)} `;
+
+      return `
+        <div class="${classes}">
+          <span class="hourly-state">${icon}</span>
+          <div class="hourly-time">
+            <strong>${dateText}${esc(slot.startTime)}–${esc(slot.endTime)}</strong>
+            <small>${slot.dayType?esc(slot.dayType):''}</small>
+          </div>
+          <span class="hourly-result">${label}</span>
+        </div>
+      `;
+    }).join('');
 }
-
 
 function applyDutyButtonState(){
   const s=todayDutyState;

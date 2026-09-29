@@ -471,3 +471,123 @@ footer{text-align:center;color:#66849b;font-size:11px;padding:15px}
     white-space:normal;
   }
 }
+
+
+/* ===== 第15步修正版：每小時巡查進度 ===== */
+.hourly-rule-note{
+  margin:10px 0 12px;
+  padding:9px 10px;
+  border-radius:11px;
+  background:#10293d;
+  border:1px solid #294c66;
+  color:#b9cedd;
+  font-size:11px;
+  line-height:1.55;
+}
+.hourly-patrol-list{
+  display:grid;
+  gap:7px;
+}
+.hourly-patrol-row{
+  display:grid;
+  grid-template-columns:34px minmax(100px,1fr) auto;
+  align-items:center;
+  gap:9px;
+  min-height:56px;
+  padding:9px 10px;
+  border-radius:13px;
+  border:1px solid #2a465d;
+  background:#0a1f30;
+}
+.hourly-state{
+  width:30px;
+  height:30px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  font-weight:900;
+  border:1px solid #546b7c;
+}
+.hourly-time strong{
+  display:block;
+  font-size:13px;
+}
+.hourly-time small{
+  display:block;
+  margin-top:2px;
+  color:#829bad;
+  font-size:10px;
+}
+.hourly-result{
+  font-size:11px;
+  text-align:right;
+}
+.hourly-done{
+  border-color:#26764f;
+  background:#0b3021;
+}
+.hourly-done .hourly-state{
+  background:#178354;
+  border-color:#178354;
+  color:#fff;
+}
+.hourly-done .hourly-result{
+  color:#7ce0ad;
+  font-weight:800;
+}
+.hourly-current{
+  border-color:#b38324;
+  background:#332707;
+}
+.hourly-current .hourly-state{
+  border-color:#d7a333;
+  color:#ffd56a;
+}
+.hourly-current .hourly-result{
+  color:#ffd56a;
+  font-weight:800;
+}
+.hourly-missed{
+  border-color:#9c3d45;
+  background:#36151a;
+}
+.hourly-missed .hourly-state{
+  background:#7c2630;
+  border-color:#a6424d;
+  color:#fff;
+}
+.hourly-missed .hourly-result{
+  color:#ff9ca7;
+  font-weight:800;
+}
+.hourly-exempt{
+  border-color:#4b6272;
+  background:#182733;
+  opacity:.8;
+}
+.hourly-exempt .hourly-state{
+  color:#b3c0ca;
+}
+.hourly-exempt .hourly-result{
+  color:#aebdca;
+}
+.hourly-future{
+  opacity:.62;
+}
+.hourly-empty{
+  padding:14px;
+  border-radius:12px;
+  border:1px dashed #3e596c;
+  color:#88a0b1;
+  text-align:center;
+  font-size:12px;
+}
+@media(max-width:430px){
+  .hourly-patrol-row{
+    grid-template-columns:32px 1fr;
+  }
+  .hourly-result{
+    grid-column:2;
+    text-align:left;
+  }
+}

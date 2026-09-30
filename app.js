@@ -52,6 +52,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('torchBtn').addEventListener('click',toggleTorch);
   $('continueScanBtn').addEventListener('click',continueScanning);
 
+  $('duplicatePatrolNextBtn').addEventListener('click',continueAfterDuplicatePatrol);
+
   $('scanSuccessCloseBtn').addEventListener('click',closeScanSuccessPopup);
   $('scanSuccessContinueBtn').addEventListener('click',()=>{
     closeScanSuccessPopup();
@@ -136,6 +138,10 @@ function showView(id){
 
   if(id!=='patrolView' && typeof closeScanSuccessPopup==='function'){
     closeScanSuccessPopup();
+  }
+
+  if(id!=='patrolView' && typeof closeDuplicatePatrolPopup==='function'){
+    closeDuplicatePatrolPopup();
   }
 
   window.scrollTo({
@@ -959,7 +965,7 @@ async function setSpecialExempt(){
 
   const ok=confirm(
     `確定將 ${dutyDate} 設為「${reason}」特殊巡查不強制？\n\n`+
-    '設定後，該勤務日每小時定點巡查改為不強制；如現場狀況允許，仍可照常巡查打卡。上班簽到與下班簽退仍須正常執行。'
+    '設定後，該勤務日每3小時定點巡查改為不強制；如現場狀況允許，仍可照常巡查打卡。上班簽到與下班簽退仍須正常執行。'
   );
 
   if(!ok){
@@ -1366,6 +1372,71 @@ async function toggleTorch(){
 
 
 
+
+function showDuplicatePatrolPopup({
+  pointId='',
+  message=''
+}={}){
+  const popup=$('duplicatePatrolPopup');
+  if(!popup)return;
+
+  $('duplicatePatrolPoint').textContent=
+    pointId || '巡查點';
+
+  $('duplicatePatrolDetail').textContent=
+    message ||
+    '本次不會重複寫入簽到紀錄。';
+
+  popup.classList.remove('hidden');
+  document.body.classList.add('popup-open');
+
+  scannerPausedAfterSuccess=true;
+
+  try{
+    if(scanner && typeof scanner.pause==='function'){
+      scanner.pause(false);
+    }
+  }catch(e){}
+
+  if(navigator.vibrate){
+    navigator.vibrate([80,60,80]);
+  }
+}
+
+
+function closeDuplicatePatrolPopup(){
+  const popup=$('duplicatePatrolPopup');
+  if(popup){
+    popup.classList.add('hidden');
+  }
+
+  document.body.classList.remove('popup-open');
+}
+
+
+function continueAfterDuplicatePatrol(){
+  closeDuplicatePatrolPopup();
+
+  $('manualQr').value='';
+  $('patrolSuccessBadge').classList.add('hidden');
+
+  scannerPausedAfterSuccess=false;
+  scanBusy=false;
+
+  status(
+    'patrolMessage',
+    '請掃描下一個巡查點。',
+    'info'
+  );
+
+  try{
+    if(scanner && typeof scanner.resume==='function'){
+      scanner.resume();
+    }
+  }catch(e){}
+}
+
+
 function showScanSuccessPopup({
   pointName='巡查點',
   pointId='',
@@ -1572,9 +1643,31 @@ async function processQr(raw){
     await refreshDutyDashboard();
 
   }catch(e){
-    status('patrolMessage',e.message,'err');
+    const msg=String(e?.message||'巡查失敗');
 
-    // 錯誤時快速恢復掃描，不必等待 1.6 秒。
+    const isDuplicatePatrol=
+      msg.includes('不可重複簽到') ||
+      msg.includes('重複巡查') ||
+      msg.includes('重複簽到');
+
+    if(isDuplicatePatrol){
+      status(
+        'patrolMessage',
+        '偵測到重複巡查，本次未寫入紀錄。',
+        'warn'
+      );
+
+      showDuplicatePatrolPopup({
+        pointId:qr,
+        message:msg + ' 本次不會重複寫入簽到紀錄。'
+      });
+
+      // 保持暫停，等使用者按「改掃下一個巡查點」後再恢復。
+      return;
+    }
+
+    status('patrolMessage',msg,'err');
+
     scannerPausedAfterSuccess=false;
 
     setTimeout(()=>{

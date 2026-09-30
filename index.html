@@ -9,7 +9,7 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=20260930-tabfix194">
+  <link rel="stylesheet" href="./styles.css?v=20260930-dup101">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <title>高雄軟體園區保全勤務簽到系統</title>
 </head>
@@ -100,7 +100,7 @@
         >
           <div class="patrol-progress-summary">
             <div>
-              <div class="eyebrow">本班每小時巡查進度</div>
+              <div class="eyebrow">本班每3小時巡查進度</div>
               <strong id="patrolProgressSummaryText">讀取中…</strong>
             </div>
             <div class="patrol-progress-summary-right">
@@ -116,8 +116,8 @@
 
         <div id="patrolProgressDetail" class="patrol-progress-detail hidden">
           <div class="hourly-rule-note">
-            <strong>每個應巡查小時，5個定點都要完成。</strong><br>
-            每小時須完成 A01／B01／C01／N01／F01。平日免簽：08–09、12–13、17–18；假日免簽：12–13。
+            <strong>每3小時為1個巡查時段，5個定點都要完成。</strong><br>
+            每個時段須完成 A01／B01／C01／N01／F01。平日 08–09、12–13、17–18 暫停巡查；假日 12–13 暫停巡查。
           </div>
 
           <div id="hourlyPatrolList" class="hourly-patrol-list">
@@ -226,7 +226,7 @@
 
     <div class="notice">
       僅設定「本人」該勤務日，不會影響其他保全同仁。
-      設定後，每小時定點巡查改為不強制；如現場狀況允許，仍可照常掃 QR 巡查打卡。上班簽到與下班簽退仍須正常執行。
+      設定後，每3小時定點巡查改為不強制；如現場狀況允許，仍可照常掃 QR 巡查打卡。上班簽到與下班簽退仍須正常執行。
     </div>
 
     <div id="specialExemptCurrent" class="special-exempt-current">
@@ -389,6 +389,31 @@
 
 </main>
 
+
+<div id="duplicatePatrolPopup" class="duplicate-patrol-popup hidden"
+     role="dialog" aria-modal="true" aria-labelledby="duplicatePatrolTitle">
+  <div class="duplicate-patrol-card">
+    <div class="duplicate-patrol-icon">!</div>
+
+    <h2 id="duplicatePatrolTitle">請勿重複巡查</h2>
+
+    <div id="duplicatePatrolPoint" class="duplicate-patrol-point">—</div>
+
+    <div class="duplicate-patrol-message">
+      <strong>此巡查點已於限制時間內完成巡查</strong>
+      <span id="duplicatePatrolDetail">
+        本次不會重複寫入簽到紀錄。
+      </span>
+    </div>
+
+    <button
+      id="duplicatePatrolNextBtn"
+      class="btn duplicate-patrol-next"
+      type="button"
+    >改掃下一個巡查點</button>
+  </div>
+</div>
+
 <div id="scanSuccessPopup" class="scan-success-popup hidden" role="dialog" aria-modal="true" aria-labelledby="scanSuccessTitle">
   <div class="scan-success-card">
     <div class="scan-success-icon">✓</div>
@@ -434,6 +459,6 @@
 </div>
 
 <script src="./config.js"></script>
-<script src="./app.js?v=20260930-tabfix194"></script>
+<script src="./app.js?v=20260930-dup101"></script>
 </body>
 </html>

@@ -1324,3 +1324,112 @@ body.popup-open{
 #loginView.hidden{
   display:none!important;
 }
+
+
+/* ===== fresh-v1.10：每3小時巡查 ===== */
+/* 保留既有 hourly-* class 名稱以避免大幅重構；畫面文字已改為每3小時。 */
+
+
+/* =========================================================
+   重複巡查警示視窗 v1.10.1
+   ========================================================= */
+.duplicate-patrol-popup{
+  position:fixed;
+  inset:0;
+  z-index:100000;
+  display:grid;
+  place-items:center;
+  padding:
+    max(12px,env(safe-area-inset-top))
+    14px
+    max(12px,env(safe-area-inset-bottom));
+  background:rgba(5,18,29,.34);
+  backdrop-filter:blur(2px);
+  -webkit-backdrop-filter:blur(2px);
+}
+
+.duplicate-patrol-popup.hidden{
+  display:none!important;
+}
+
+.duplicate-patrol-card{
+  width:min(92vw,380px);
+  padding:21px 17px 17px;
+  border:2px solid #e0a128;
+  border-radius:22px;
+  background:#fffdf7;
+  color:#49340e;
+  box-shadow:0 18px 60px rgba(0,0,0,.30);
+  text-align:center;
+}
+
+.duplicate-patrol-icon{
+  display:grid;
+  place-items:center;
+  width:64px;
+  height:64px;
+  margin:0 auto 10px;
+  border-radius:50%;
+  background:#e29a16;
+  color:#fff;
+  font-size:40px;
+  font-weight:900;
+  line-height:1;
+  box-shadow:0 7px 20px rgba(226,154,22,.25);
+}
+
+.duplicate-patrol-card h2{
+  margin:0;
+  color:#9b6100;
+  font-size:22px;
+  font-weight:900;
+}
+
+.duplicate-patrol-point{
+  margin-top:8px;
+  color:#193d5b;
+  font-size:26px;
+  font-weight:900;
+  letter-spacing:1px;
+}
+
+.duplicate-patrol-message{
+  display:grid;
+  gap:6px;
+  margin:15px 0;
+  padding:12px 10px;
+  border:1px solid #edcd8a;
+  border-radius:13px;
+  background:#fff6df;
+  line-height:1.55;
+}
+
+.duplicate-patrol-message strong{
+  color:#825400;
+  font-size:14px;
+}
+
+.duplicate-patrol-message span{
+  color:#745f38;
+  font-size:12px;
+}
+
+.duplicate-patrol-next{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:100%!important;
+  min-height:52px!important;
+  margin:0!important;
+  padding:12px 14px!important;
+  border:0!important;
+  border-radius:15px!important;
+  background:linear-gradient(90deg,#d7890b,#e6a927)!important;
+  color:#fff!important;
+  -webkit-text-fill-color:#fff!important;
+  font-size:17px!important;
+  font-weight:900!important;
+  opacity:1!important;
+  appearance:none!important;
+  -webkit-appearance:none!important;
+}

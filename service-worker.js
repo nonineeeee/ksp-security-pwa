@@ -1,5 +1,5 @@
 
-const CACHE_NAME='ksp-security-fresh-pwa-tab-fix-194';
+const CACHE_NAME='ksp-security-fresh-pwa-duplicate-popup-101';
 
 const STATIC_ASSETS=[
   './manifest.json',

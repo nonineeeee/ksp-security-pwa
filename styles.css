@@ -858,3 +858,160 @@ footer{text-align:center;color:#66849b;font-size:11px;padding:15px}
   color:#c8e9fa;
   font-size:10px;
 }
+
+/* ===== 掃描成功置中視窗 ===== */
+.scan-success-popup{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  display:grid;
+  place-items:center;
+  padding:18px;
+  background:rgba(5,18,29,.24);
+  backdrop-filter:blur(2px);
+  -webkit-backdrop-filter:blur(2px);
+}
+.scan-success-popup.hidden{
+  display:none!important;
+}
+.scan-success-card{
+  width:min(92vw,380px);
+  padding:22px 18px 18px;
+  border-radius:22px;
+  border:1px solid #45bf83;
+  background:#f8fffb;
+  color:#143528;
+  box-shadow:0 18px 60px rgba(0,0,0,.30);
+  text-align:center;
+}
+.scan-success-icon{
+  width:68px;
+  height:68px;
+  margin:0 auto 10px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:#178354;
+  color:#fff;
+  font-size:38px;
+  font-weight:900;
+  box-shadow:0 7px 22px rgba(23,131,84,.28);
+}
+.scan-success-card h2{
+  margin:0;
+  color:#135d3e;
+  font-size:22px;
+}
+.scan-success-point{
+  margin-top:7px;
+  font-size:15px;
+  font-weight:900;
+  color:#173c2d;
+}
+.scan-success-info{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin:16px 0 13px;
+}
+.scan-success-info > div{
+  padding:10px 8px;
+  border-radius:13px;
+  background:#eaf8f0;
+  border:1px solid #b9e3ca;
+}
+.scan-success-info span{
+  display:block;
+  color:#5c7869;
+  font-size:10px;
+}
+.scan-success-info strong{
+  display:block;
+  margin-top:3px;
+  color:#174b35;
+  font-size:12px;
+  overflow-wrap:anywhere;
+}
+.scan-success-card .btn{
+  margin-top:8px;
+}
+body.popup-open{
+  overflow:hidden;
+}
+
+
+/* ===== 特殊情況日免打卡 ===== */
+.special-exempt-tile{
+  border-color:#8b6a2c;
+  background:linear-gradient(135deg,#33270b,#4b3710);
+}
+.special-exempt-tile span{
+  font-size:26px;
+}
+.special-exempt-banner{
+  margin-top:10px;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid #c28a2d;
+  background:#3a2908;
+  color:#ffd778;
+  font-size:12px;
+  font-weight:800;
+  line-height:1.5;
+}
+.duty-status.state-special{
+  border-color:#bd872e;
+  background:linear-gradient(135deg,#382806,#50380b);
+  color:#ffd66b;
+}
+.special-exempt-current{
+  margin:12px 0;
+  padding:12px;
+  border-radius:14px;
+  border:1px solid #3a566b;
+  background:#102536;
+  color:#b8cbd9;
+  line-height:1.55;
+}
+.special-exempt-current.active{
+  border-color:#c28a2d;
+  background:#392908;
+  color:#ffdb82;
+}
+.special-exempt-current small{
+  color:inherit;
+  opacity:.82;
+}
+.special-primary{
+  background:linear-gradient(135deg,#94671c,#c08a2b);
+  border-color:#d6a34d;
+  color:#fff;
+}
+.hourly-special{
+  border-color:#a8792a;
+  background:#342606;
+}
+.hourly-special .hourly-state{
+  color:#ffd66b;
+  border-color:#b38324;
+}
+.hourly-special .hourly-result{
+  color:#ffd66b;
+  font-weight:800;
+}
+
+
+/* ===== 特殊情況免巡查 v1.8 ===== */
+
+
+/* ===== fresh-v1.9 特殊情況巡查不強制，但仍可巡查 ===== */
+.hourly-special .hourly-point.point-pending{
+  border-color:#8a6a2a;
+  background:#2c240f;
+  color:#d8ba76;
+}
+.hourly-special .hourly-point.point-done{
+  border-color:#26764f;
+  background:#0b3a27;
+  color:#83e3af;
+}

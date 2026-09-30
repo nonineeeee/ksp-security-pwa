@@ -1,5 +1,5 @@
 
-const CACHE_NAME='ksp-security-fresh-pwa-qr-fast-193';
+const CACHE_NAME='ksp-security-fresh-pwa-tab-fix-194';
 
 const STATIC_ASSETS=[
   './manifest.json',

@@ -105,14 +105,43 @@ function status(id,msg,type='info'){
 }
 
 function showView(id){
-  ['mainView','patrolView','recordsView','incidentView','correctionView']
-    .forEach(v=>$(v).classList.add('hidden'));
+  const views=[
+    'loginView',
+    'mainView',
+    'patrolView',
+    'recordsView',
+    'incidentView',
+    'correctionView',
+    'specialExemptView'
+  ];
 
-  $(id).classList.remove('hidden');
+  views.forEach(viewId=>{
+    const el=$(viewId);
+    if(!el)return;
+
+    el.classList.toggle(
+      'hidden',
+      viewId!==id
+    );
+  });
 
   if(id!=='patrolView'){
     stopScanner();
   }
+
+  const specialView=$('specialExemptView');
+  if(specialView && id!=='specialExemptView'){
+    specialView.classList.add('hidden');
+  }
+
+  if(id!=='patrolView' && typeof closeScanSuccessPopup==='function'){
+    closeScanSuccessPopup();
+  }
+
+  window.scrollTo({
+    top:0,
+    behavior:'auto'
+  });
 }
 
 function apiCall(action,payload={}){

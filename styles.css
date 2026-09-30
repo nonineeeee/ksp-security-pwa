@@ -1312,3 +1312,15 @@ body.popup-open{
 #reader video{
   object-fit:cover!important;
 }
+
+
+/* ===== 頁籤切換修正 v1.9.4 ===== */
+#specialExemptView.hidden,
+#mainView.hidden,
+#patrolView.hidden,
+#recordsView.hidden,
+#incidentView.hidden,
+#correctionView.hidden,
+#loginView.hidden{
+  display:none!important;
+}

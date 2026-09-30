@@ -1303,3 +1303,12 @@ body.popup-open{
 #specialExemptBanner{
   display:none!important;
 }
+
+
+/* ===== QR 快速辨識 v1.9.3 ===== */
+#reader{
+  min-height:300px;
+}
+#reader video{
+  object-fit:cover!important;
+}

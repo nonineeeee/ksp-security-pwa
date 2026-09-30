@@ -1071,7 +1071,9 @@ async function startScanner(){
   try{
     scanner=new Html5Qrcode('reader',{
       formatsToSupport:[Html5QrcodeSupportedFormats.QR_CODE],
-      useBarCodeDetectorIfSupported:true,
+      experimentalFeatures:{
+        useBarCodeDetectorIfSupported:true
+      },
       verbose:false
     });
 
@@ -1097,24 +1099,38 @@ async function startScanner(){
     await scanner.start(
       cameraConfig,
       {
-        fps:15,
+        // 三碼巡查 QR 使用較大的有效掃描區，提升手機近距離辨識速度。
+        fps:24,
         qrbox:(w,h)=>{
           const minSide=Math.min(w,h);
           const s=Math.max(
-            220,
+            240,
             Math.min(
-              340,
-              Math.floor(minSide*.72)
+              420,
+              Math.floor(minSide*.84)
             )
           );
           return {width:s,height:s};
         },
-        aspectRatio:1.7777778,
         disableFlip:true
       },
       text=>{
         if(scanBusy || scannerPausedAfterSuccess)return;
+
         scanBusy=true;
+
+        // 一偵測到 QR 就先暫停解碼，保留即時鏡頭畫面，
+        // 避免 GPS / API 執行時仍持續耗 CPU 掃描。
+        try{
+          if(scanner && typeof scanner.pause==='function'){
+            scanner.pause(false);
+          }
+        }catch(e){}
+
+        if(navigator.vibrate){
+          navigator.vibrate(50);
+        }
+
         processQr(text);
       },
       ()=>{}
@@ -1122,7 +1138,7 @@ async function startScanner(){
 
     await prepareCameraTrack();
 
-    $('cameraStatus').textContent='後置鏡頭已啟動｜連續自動對焦';
+    $('cameraStatus').textContent='快速掃描模式｜後置鏡頭｜連續自動對焦';
     $('cameraControls').classList.remove('hidden');
 
   }catch(e){
@@ -1168,12 +1184,13 @@ async function prepareCameraTrack(){
     advanced.push({focusMode:'continuous'});
   }
 
-  // 請求較高解析度；手機不支援時瀏覽器會自動降級。
+  // QR 辨識優先使用 720p：畫質足夠、比 1080p 解碼負擔低，
+  // 對 iPhone Safari 的即時辨識通常更快。
   try{
     await cameraTrack.applyConstraints({
-      width:{ideal:1920},
-      height:{ideal:1080},
-      frameRate:{ideal:30,min:15},
+      width:{ideal:1280},
+      height:{ideal:720},
+      frameRate:{ideal:24,min:15},
       ...(advanced.length?{advanced}: {})
     });
   }catch(e){
@@ -1430,6 +1447,11 @@ async function stopScanner(){
 async function processQr(raw){
   if(!currentPerson){
     scanBusy=false;
+    try{
+      if(scanner && typeof scanner.resume==='function'){
+        scanner.resume();
+      }
+    }catch(e){}
     return;
   }
 
@@ -1438,34 +1460,39 @@ async function processQr(raw){
   if(!qr){
     status('patrolMessage','請掃描或輸入 QR 識別碼。','warn');
     scanBusy=false;
+    try{
+      if(scanner && typeof scanner.resume==='function'){
+        scanner.resume();
+      }
+    }catch(e){}
     return;
   }
 
   try{
-    status('patrolMessage','正在辨識巡查點…','info');
-
-    const cpResp=await apiCall('checkpoint',{qr});
-    const cp=cpResp.checkpoint;
+    // QR 已經由手機端成功解碼，不再多做一次 checkpoint API 查詢。
+    // 直接取得 GPS，最後只呼叫一次 patrol API，由後端完成 QR + GPS 驗證。
+    status(
+      'patrolMessage',
+      `QR 已辨識：${qr}｜正在取得 GPS…`,
+      'info'
+    );
 
     $('pointCard').classList.remove('hidden');
-    $('pointName').textContent=cp.name||cp.checkpointId;
-    $('pointCode').textContent=`${cp.checkpointId}｜${cp.qr}`;
-    $('maxDistance').textContent=`${cp.radius||100} 公尺`;
-    $('checkpointGpsState').textContent=
-      cp.gpsConfigured
-        ? '已設定'
-        : '尚未設定';
-
-    if(!cp.gpsConfigured){
-      throw new Error(
-        `${cp.checkpointId} 尚未設定專屬 GPS 座標，請先完成巡查點定位設定。`
-      );
-    }
-
-    status('patrolMessage','QR辨識成功，正在取得 GPS…','info');
+    $('pointName').textContent='正在驗證巡查點…';
+    $('pointCode').textContent=qr;
+    $('maxDistance').textContent='驗證中';
+    $('checkpointGpsState').textContent='驗證中';
 
     const gps=await getGps();
-    $('gpsAccuracy').textContent=`約 ±${Math.round(gps.accuracy)} 公尺`;
+
+    $('gpsAccuracy').textContent=
+      `約 ±${Math.round(gps.accuracy)} 公尺`;
+
+    status(
+      'patrolMessage',
+      `QR ${qr} 已辨識｜GPS 已取得｜正在寫入巡查紀錄…`,
+      'info'
+    );
 
     const r=await apiCall('patrol',{
       personId:currentPerson.personId,
@@ -1474,18 +1501,31 @@ async function processQr(raw){
       lng:gps.lng
     });
 
-    // 成功後只暫停 QR 辨識，保留鏡頭即時畫面，不再黑屏。
-    pauseScannerKeepVideo();
+    const cp=r.checkpoint||{};
+
+    $('pointName').textContent=
+      cp.name||cp.checkpointId||qr;
+
+    $('pointCode').textContent=
+      `${cp.checkpointId||qr}｜${cp.qr||qr}`;
+
+    $('maxDistance').textContent=
+      `${cp.radius||100} 公尺`;
+
+    $('checkpointGpsState').textContent='已驗證';
+
+    // 成功後只暫停 QR 辨識，保留鏡頭即時畫面。
+    scannerPausedAfterSuccess=true;
 
     const successText=
-      `${r.checkpoint?.name||'巡查點'}｜GPS 約 ${r.distance} 公尺`;
+      `${cp.name||'巡查點'}｜GPS 約 ${r.distance} 公尺`;
 
     $('patrolSuccessText').textContent=successText;
     $('patrolSuccessBadge').classList.remove('hidden');
 
     showScanSuccessPopup({
-      pointName:r.checkpoint?.name||'巡查點',
-      pointId:r.checkpoint?.checkpointId||'',
+      pointName:cp.name||'巡查點',
+      pointId:cp.checkpointId||qr,
       time:r.serverTime||'',
       distance:r.distance
     });
@@ -1504,7 +1544,19 @@ async function processQr(raw){
 
   }catch(e){
     status('patrolMessage',e.message,'err');
-    setTimeout(()=>{scanBusy=false;},1600);
+
+    // 錯誤時快速恢復掃描，不必等待 1.6 秒。
+    scannerPausedAfterSuccess=false;
+
+    setTimeout(()=>{
+      scanBusy=false;
+
+      try{
+        if(scanner && typeof scanner.resume==='function'){
+          scanner.resume();
+        }
+      }catch(ignore){}
+    },500);
   }
 }
 

@@ -471,12 +471,7 @@ function renderDutyDashboard(){
   const special=
     todayDutyState.specialExempt;
 
-  if(special?.exempt){
-    stateClass='state-special';
-    stateIcon='－';
-    stateText=`巡查不強制｜${special.record?.reason||'特殊情形'}`;
-  }
-
+  // 特殊情況只影響巡查是否強制，不取代首頁的上下班勤務狀態。
   panel.classList.add(stateClass);
   icon.textContent=stateIcon;
   text.textContent=stateText;
@@ -484,27 +479,12 @@ function renderDutyDashboard(){
   const progress=todayDutyState.patrolProgress;
 
   patrolChip.textContent=
-    special?.exempt
-      ? '本班特殊巡查不強制'
-      : (
-        progress && Number(progress.requiredChecks||0)>0
-          ? `定點完成 ${progress.completedChecks||0} / ${progress.requiredChecks}`
-          : `巡查紀錄 ${todayDutyState.patrolCount} 筆`
-      );
+    progress && Number(progress.requiredChecks||0)>0
+      ? `定點完成 ${progress.completedChecks||0} / ${progress.requiredChecks}`
+      : `巡查紀錄 ${todayDutyState.patrolCount} 筆`;
 
   const specialBanner=$('specialExemptBanner');
-
-  if(special?.exempt){
-    const note=
-      special.record?.note
-        ? `｜${special.record.note}`
-        : '';
-
-    specialBanner.textContent=
-      `特殊情況巡查不強制：${special.record?.reason||'特殊情形'}${note}｜仍可巡查打卡｜上下班仍須打卡`;
-
-    specialBanner.classList.remove('hidden');
-  }else{
+  if(specialBanner){
     specialBanner.classList.add('hidden');
     specialBanner.textContent='';
   }

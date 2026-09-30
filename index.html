@@ -9,7 +9,7 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=20260930-optionalpatrol1">
+  <link rel="stylesheet" href="./styles.css?v=20260930-ui191">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <title>高雄軟體園區保全勤務簽到系統</title>
 </head>
@@ -127,7 +127,7 @@
       </div>
 
       <div id="patrolExempt" class="mini-note hidden"></div>
-      <div id="specialExemptBanner" class="special-exempt-banner hidden"></div>
+      <div id="specialExemptBanner" class="hidden" aria-hidden="true"></div>
       <div id="mainMessage"></div>
     </section>
 
@@ -406,13 +406,15 @@
       </div>
     </div>
 
-    <button id="scanSuccessCloseBtn" class="btn primary">
-      知道了
-    </button>
+    <div class="scan-success-actions">
+      <button id="scanSuccessContinueBtn" class="btn primary scan-success-continue">
+        ▶ 繼續巡查下一個點
+      </button>
 
-    <button id="scanSuccessContinueBtn" class="btn outline">
-      繼續掃描下一巡查點
-    </button>
+      <button id="scanSuccessCloseBtn" class="btn outline scan-success-close">
+        關閉成功視窗
+      </button>
+    </div>
   </div>
 </div>
 
@@ -426,6 +428,6 @@
 </div>
 
 <script src="./config.js"></script>
-<script src="./app.js?v=20260930-optionalpatrol1"></script>
+<script src="./app.js?v=20260930-ui191"></script>
 </body>
 </html>

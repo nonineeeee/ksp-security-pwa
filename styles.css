@@ -1015,3 +1015,111 @@ body.popup-open{
   background:#0b3a27;
   color:#83e3af;
 }
+
+
+/* ===== UI Hotfix v1.9.1 =====
+   1) 成功視窗在小螢幕固定可看到「繼續巡查下一個點」
+   2) 簽到首頁不展示特殊情況巡查不強制的獨立狀態區
+*/
+#specialExemptBanner{
+  display:none!important;
+}
+
+/* 成功視窗改為手機優先、內容不超出可視高度 */
+.scan-success-popup{
+  padding:
+    max(10px, env(safe-area-inset-top))
+    12px
+    max(10px, env(safe-area-inset-bottom));
+  align-items:center;
+}
+
+.scan-success-card{
+  width:min(94vw,380px);
+  max-height:calc(100dvh - 24px);
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:16px 15px 12px;
+  scrollbar-width:thin;
+}
+
+/* 稍微縮短上方資訊，讓主要操作鍵優先留在畫面內 */
+.scan-success-icon{
+  width:54px;
+  height:54px;
+  margin-bottom:7px;
+  font-size:31px;
+}
+.scan-success-card h2{
+  font-size:20px;
+}
+.scan-success-point{
+  margin-top:5px;
+  font-size:14px;
+}
+.scan-success-info{
+  gap:6px;
+  margin:11px 0 9px;
+}
+.scan-success-info > div{
+  padding:8px 6px;
+}
+
+/* 主要操作區固定在成功卡片下方，滾動時也保留 */
+.scan-success-actions{
+  position:sticky;
+  bottom:-1px;
+  z-index:3;
+  display:grid;
+  gap:7px;
+  margin:8px -3px -2px;
+  padding:7px 3px 2px;
+  background:linear-gradient(
+    to bottom,
+    rgba(248,255,251,.90),
+    #f8fffb 35%
+  );
+}
+
+.scan-success-card .scan-success-continue{
+  min-height:52px;
+  margin:0;
+  font-size:16px;
+  font-weight:900;
+  box-shadow:0 7px 18px rgba(23,131,84,.22);
+}
+
+.scan-success-card .scan-success-close{
+  min-height:40px;
+  margin:0;
+  padding:8px 10px;
+  font-size:12px;
+}
+
+/* 特別矮的手機畫面再壓縮一次 */
+@media (max-height:650px){
+  .scan-success-card{
+    padding:11px 13px 8px;
+  }
+  .scan-success-icon{
+    width:42px;
+    height:42px;
+    font-size:25px;
+    margin-bottom:4px;
+  }
+  .scan-success-card h2{
+    font-size:18px;
+  }
+  .scan-success-point{
+    font-size:13px;
+  }
+  .scan-success-info{
+    margin:7px 0 5px;
+  }
+  .scan-success-info > div{
+    padding:6px 5px;
+  }
+  .scan-success-card .scan-success-continue{
+    min-height:48px;
+  }
+}

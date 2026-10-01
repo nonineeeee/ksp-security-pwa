@@ -1,5 +1,5 @@
 
-const CACHE_NAME='ksp-security-fresh-pwa-progress-cards-142';
+const CACHE_NAME='ksp-security-fresh-pwa-manual-gps-117';
 
 const STATIC_ASSETS=[
   './manifest.json',

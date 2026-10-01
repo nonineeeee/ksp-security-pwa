@@ -9,7 +9,7 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=20261001-progresscards142">
+  <link rel="stylesheet" href="./styles.css?v=20261001-manualgps117">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <title>高雄軟體園區保全勤務簽到系統</title>
 </head>
@@ -152,8 +152,8 @@
         <span>🌧️</span><b>特殊巡查不強制</b><small>颱風／風雨／活動支援</small>
       </button>
 
-      <button id="correctionBtn" class="tile wide correction-tile">
-        <span>📝</span><b>漏簽補登</b><small>提出補登紀錄</small>
+      <button id="correctionBtn" class="tile wide correction-tile hidden">
+        <span>📝</span><b>勤務時間修正</b><small>修正勤務時間</small>
       </button>
 
       <button id="clockOutBtn" class="tile wide checkout-tile">
@@ -208,9 +208,61 @@
       </div>
     </div>
 
-    <label for="manualQr">無法掃描時手動輸入 QR 識別碼</label>
-    <input id="manualQr" placeholder="例如 KSP-P01">
+    <label for="manualQr">無法掃描時手動輸入 QR 識別碼（仍會驗證 GPS）</label>
+    <input id="manualQr" placeholder="例如 P01">
     <button id="manualQrBtn" class="btn outline">確認識別碼</button>
+
+    <div class="patrol-manual-divider"><span>或</span></div>
+
+    <button id="manualPatrolToggleBtn" class="btn manual-patrol-toggle" type="button">
+      ⌨️ 人工登錄巡查
+    </button>
+
+    <div id="manualPatrolPanel" class="manual-patrol-panel hidden">
+      <div class="manual-patrol-title">
+        <strong>人工登錄巡查</strong>
+        <small>忘記操作或設備異常時使用</small>
+      </div>
+
+      <div class="notice compact-notice">
+        平常請優先使用 QR＋GPS。人工登錄可免掃 QR，
+        但送出時仍會取得目前 GPS，並確認您位於所選巡查點允許範圍內。
+      </div>
+
+      <label for="manualPatrolPoint">巡查點</label>
+      <select id="manualPatrolPoint">
+        <option value="">請選擇巡查點</option>
+      </select>
+
+      <div class="manual-patrol-datetime">
+        <div>
+          <label for="manualPatrolDate">實際巡查日期</label>
+          <input id="manualPatrolDate" type="date">
+        </div>
+        <div>
+          <label for="manualPatrolTime">實際巡查時間</label>
+          <input id="manualPatrolTime" type="time">
+        </div>
+      </div>
+
+      <label for="manualPatrolNote">簡短說明（選填）</label>
+      <input
+        id="manualPatrolNote"
+        maxlength="120"
+        placeholder="例如：忘記操作、手機無訊號"
+      >
+
+      <div id="manualPatrolGpsState" class="manual-patrol-gps-state">
+        <strong>GPS 驗證</strong>
+        <span>送出時自動取得目前位置</span>
+      </div>
+
+      <button id="submitManualPatrolBtn" class="btn primary" type="button">
+        確認登錄巡查紀錄
+      </button>
+
+      <div id="manualPatrolMessage"></div>
+    </div>
 
     <div id="patrolMessage"></div>
   </section>
@@ -335,13 +387,13 @@
   <section id="correctionView" class="card hidden">
     <div class="section-head">
       <div>
-        <div class="eyebrow">紀錄補登</div>
-        <h2>漏簽補登</h2>
+        <div class="eyebrow">紀錄時間修正</div>
+        <h2>勤務時間修正</h2>
       </div>
       <button id="correctionBackBtn" class="text-btn">返回</button>
     </div>
 
-    <label for="correctionType">補登類型</label>
+    <label for="correctionType">時間修正類型</label>
     <select id="correctionType">
       <option value="">請選擇</option>
       <option value="上班">上班漏簽</option>
@@ -372,14 +424,14 @@
       </select>
     </div>
 
-    <label for="correctionReason">補登原因</label>
+    <label for="correctionReason">修正原因</label>
     <textarea id="correctionReason" rows="4" placeholder="請說明漏簽原因"></textarea>
 
-    <button id="submitCorrectionBtn" class="btn correction-submit">送出補登</button>
+    <button id="submitCorrectionBtn" class="btn correction-submit">送出時間修正</button>
     <div id="correctionMessage"></div>
 
     <div class="section-head list-head">
-      <h3>我的補登紀錄</h3>
+      <h3>我的時間修正紀錄</h3>
       <button id="refreshCorrectionsBtn" class="text-btn">重新整理</button>
     </div>
     <div id="correctionList" class="records-list"></div>
@@ -459,6 +511,6 @@
 </div>
 
 <script src="./config.js"></script>
-<script src="./app.js?v=20261001-progresscards142"></script>
+<script src="./app.js?v=20261001-manualgps117"></script>
 </body>
 </html>

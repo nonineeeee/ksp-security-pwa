@@ -1566,3 +1566,145 @@ body.popup-open{
     font-size:11px!important;
   }
 }
+
+
+/* =========================================================
+   fresh-v1.16｜定點巡查人工登錄
+   ========================================================= */
+.patrol-manual-divider{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:16px 0 12px;
+  color:#70879a;
+  font-size:12px;
+  font-weight:800;
+}
+
+.patrol-manual-divider::before,
+.patrol-manual-divider::after{
+  content:"";
+  flex:1;
+  height:1px;
+  background:#d8e2e9;
+}
+
+.manual-patrol-toggle{
+  width:100%;
+  background:#f5f9fc!important;
+  color:#214a68!important;
+  border:1px solid #bfd1dd!important;
+  -webkit-text-fill-color:#214a68!important;
+}
+
+.manual-patrol-panel{
+  margin-top:12px;
+  padding:14px;
+  border:1px solid #c7d8e3;
+  border-radius:16px;
+  background:#f8fbfd;
+}
+
+.manual-patrol-panel.hidden{
+  display:none!important;
+}
+
+.manual-patrol-title{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+  margin-bottom:10px;
+}
+
+.manual-patrol-title strong{
+  color:#163f5f;
+  font-size:17px;
+}
+
+.manual-patrol-title small{
+  color:#6b8192;
+  font-size:12px;
+}
+
+.compact-notice{
+  margin:8px 0 12px!important;
+  padding:10px 11px!important;
+  font-size:12px!important;
+  line-height:1.55!important;
+}
+
+.manual-patrol-datetime{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+.manual-patrol-datetime > div{
+  min-width:0;
+}
+
+.manual-patrol-panel input,
+.manual-patrol-panel select{
+  width:100%;
+  box-sizing:border-box;
+}
+
+#submitManualPatrolBtn{
+  margin-top:12px;
+}
+
+@media(max-width:390px){
+  .manual-patrol-datetime{
+    grid-template-columns:1fr;
+    gap:0;
+  }
+}
+
+
+/* =========================================================
+   fresh-v1.17｜人工巡查 GPS 驗證
+   ========================================================= */
+.manual-patrol-gps-state{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+  margin-top:12px;
+  padding:10px 11px;
+  border:1px solid #c9d8e2;
+  border-radius:12px;
+  background:#fff;
+}
+
+.manual-patrol-gps-state strong{
+  color:#244a66;
+  font-size:13px;
+}
+
+.manual-patrol-gps-state span{
+  color:#6b7f8e;
+  font-size:12px;
+  line-height:1.45;
+}
+
+.manual-patrol-gps-state.checking{
+  border-color:#9ebdd1;
+  background:#f1f7fb;
+}
+
+.manual-patrol-gps-state.ok{
+  border-color:#9fcfb2;
+  background:#f2fbf6;
+}
+
+.manual-patrol-gps-state.ok strong{
+  color:#276842;
+}
+
+.manual-patrol-gps-state.err{
+  border-color:#e0b4b4;
+  background:#fff7f7;
+}
+
+.manual-patrol-gps-state.err strong{
+  color:#9a3c3c;
+}

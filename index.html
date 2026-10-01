@@ -9,7 +9,7 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=20261001-gps113">
+  <link rel="stylesheet" href="./styles.css?v=20261001-sharedspecial114">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <title>高雄軟體園區保全勤務簽到系統</title>
 </head>
@@ -225,8 +225,8 @@
     </div>
 
     <div class="notice">
-      僅設定「本人」該勤務日，不會影響其他保全同仁。
-      設定後，每小時共同巡查改為不強制；如現場狀況允許，仍可照常掃 QR 巡查打卡。上班簽到與下班簽退仍須正常執行。
+      同班只要一位保全設定，該勤務日同班所有保全同步生效。
+      設定後，每小時共同巡查改為不強制；如現場狀況允許，仍可照常掃 QR 巡查打卡。上班簽到與下班簽退仍須每人正常執行。
     </div>
 
     <div id="specialExemptCurrent" class="special-exempt-current">
@@ -256,16 +256,16 @@
     ></textarea>
 
     <button id="setSpecialExemptBtn" class="btn special-primary">
-      設定此勤務日巡查不強制
+      設定本班巡查不強制
     </button>
 
     <button id="cancelSpecialExemptBtn" class="btn outline hidden">
-      取消巡查不強制設定
+      取消本班巡查不強制
     </button>
 
     <div class="mini-note">
-      系統會留下設定人、勤務日期、原因、說明及伺服器設定時間。
-      若特殊情況解除，可由本人於本頁取消。
+      系統會留下設定人、勤務日期、班別、原因、說明及伺服器設定時間。<br>
+      若特殊情況解除，任一同班保全均可於本頁取消，取消後整班同步恢復一般巡查規則。
     </div>
 
     <div id="specialExemptMessage"></div>
@@ -459,6 +459,6 @@
 </div>
 
 <script src="./config.js"></script>
-<script src="./app.js?v=20261001-gps113"></script>
+<script src="./app.js?v=20261001-sharedspecial114"></script>
 </body>
 </html>

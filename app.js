@@ -890,13 +890,13 @@ async function loadSpecialExemptStatus(){
           : '';
 
       $('specialExemptCurrent').innerHTML=
-        `<strong>目前已設定免打卡</strong><br>`+
-        `${esc(r.record?.reason||'特殊情形')}${esc(note)}<br>`+
-        `<small>設定時間：${esc(r.record?.createdAt||'—')}</small>`;
+        `<strong>目前整班已設定巡查不強制</strong><br>`+
+        `${esc(r.shift||r.record?.shift||'')}｜${esc(r.record?.reason||'特殊情形')}${esc(note)}<br>`+
+        `<small>設定人：${esc(r.record?.name||'—')}｜設定時間：${esc(r.record?.createdAt||'—')}</small>`;
 
       $('specialExemptCurrent').classList.add('active');
       $('cancelSpecialExemptBtn').classList.remove('hidden');
-      $('setSpecialExemptBtn').textContent='更新特殊巡查不強制設定';
+      $('setSpecialExemptBtn').textContent='更新本班巡查不強制設定';
 
       if(r.record?.reason){
         $('specialExemptReason').value=r.record.reason;
@@ -907,11 +907,11 @@ async function loadSpecialExemptStatus(){
 
     }else{
       $('specialExemptCurrent').textContent=
-        '目前狀態：未設定特殊巡查不強制';
+        '目前狀態：本班未設定特殊巡查不強制';
 
       $('specialExemptCurrent').classList.remove('active');
       $('cancelSpecialExemptBtn').classList.add('hidden');
-      $('setSpecialExemptBtn').textContent='設定此勤務日免打卡';
+      $('setSpecialExemptBtn').textContent='設定本班巡查不強制';
     }
 
   }catch(e){
@@ -964,8 +964,8 @@ async function setSpecialExempt(){
   }
 
   const ok=confirm(
-    `確定將 ${dutyDate} 設為「${reason}」特殊巡查不強制？\n\n`+
-    '設定後，該勤務日每小時共同巡查改為不強制；如現場狀況允許，仍可照常巡查打卡。上班簽到與下班簽退仍須正常執行。'
+    `確定將 ${dutyDate} 本班設為「${reason}」巡查不強制？\n\n`+
+    '同班只要一人設定，整班同步生效；上班簽到與下班簽退仍須每人正常執行。'
   );
 
   if(!ok){
@@ -1003,7 +1003,7 @@ async function setSpecialExempt(){
 
   }finally{
     btn.disabled=false;
-    btn.textContent='設定此勤務日免打卡';
+    btn.textContent='設定本班巡查不強制';
   }
 }
 
@@ -1015,7 +1015,7 @@ async function cancelSpecialExempt(){
 
   const dutyDate=$('specialExemptDate').value;
 
-  if(!confirm(`確定取消 ${dutyDate} 的特殊巡查不強制？`)){
+  if(!confirm(`確定取消 ${dutyDate} 本班的特殊巡查不強制？\n\n取消後同班所有保全同步恢復一般巡查規則。`)){
     return;
   }
 
@@ -1051,7 +1051,7 @@ async function cancelSpecialExempt(){
 
   }finally{
     btn.disabled=false;
-    btn.textContent='取消此勤務日免打卡';
+    btn.textContent='取消本班巡查不強制';
   }
 }
 

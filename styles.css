@@ -1450,3 +1450,10 @@ body.popup-open{
   font-weight:600;
   color:#567086;
 }
+
+
+/* ===== fresh-v1.14：班次共同特殊巡查設定 ===== */
+.special-exempt-current.active strong{
+  display:inline-block;
+  margin-bottom:4px;
+}

@@ -729,7 +729,9 @@ function renderHourlyPatrolProgress(){
               ${points.map(p=>`
                 <span class="hourly-point ${p.done?'point-done':'point-pending'}">
                   <b>${esc(p.id)}</b>
-                  <small>${p.done?'✓ '+esc(p.time||'')+(p.personName?'｜'+esc(p.personName):''):(slot.status==='special'?'免強制':'待巡')}</small>
+                  <small class="point-progress-meta">${p.done
+                    ? `<span class="point-progress-time">✓ ${esc(p.time||'')}</span><span class="point-progress-name">${esc(p.personName||'')}</span>`
+                    : (slot.status==='special'?'免強制':'待巡')}</small>
                 </span>
               `).join('')}
             </div>

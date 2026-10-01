@@ -729,7 +729,7 @@ function renderHourlyPatrolProgress(){
               ${points.map(p=>`
                 <span class="hourly-point ${p.done?'point-done':'point-pending'}">
                   <b>${esc(p.id)}</b>
-                  <small>${p.done?'✓ '+esc(p.time||''):(slot.status==='special'?'免強制':'待巡')}</small>
+                  <small>${p.done?'✓ '+esc(p.time||'')+(p.personName?'｜'+esc(p.personName):''):(slot.status==='special'?'免強制':'待巡')}</small>
                 </span>
               `).join('')}
             </div>
@@ -965,7 +965,7 @@ async function setSpecialExempt(){
 
   const ok=confirm(
     `確定將 ${dutyDate} 設為「${reason}」特殊巡查不強制？\n\n`+
-    '設定後，該勤務日每3小時定點巡查改為不強制；如現場狀況允許，仍可照常巡查打卡。上班簽到與下班簽退仍須正常執行。'
+    '設定後，該勤務日每小時共同巡查改為不強制；如現場狀況允許，仍可照常巡查打卡。上班簽到與下班簽退仍須正常執行。'
   );
 
   if(!ok){
@@ -1648,12 +1648,14 @@ async function processQr(raw){
     const isDuplicatePatrol=
       msg.includes('不可重複簽到') ||
       msg.includes('重複巡查') ||
-      msg.includes('重複簽到');
+      msg.includes('重複簽到') ||
+      msg.includes('無須重複打卡') ||
+      msg.includes('已由');
 
     if(isDuplicatePatrol){
       status(
         'patrolMessage',
-        '偵測到重複巡查，本次未寫入紀錄。',
+        '本巡查點於本時段已完成，本次未重複寫入紀錄。',
         'warn'
       );
 

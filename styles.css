@@ -1433,3 +1433,20 @@ body.popup-open{
   appearance:none!important;
   -webkit-appearance:none!important;
 }
+
+/* fresh-v1.11 每2小時同班共同巡查 */
+.hourly-point small{display:block;margin-top:2px;}
+
+
+/* ===== fresh-v1.12：每小時、同班共同巡查 ===== */
+
+
+/* ===== fresh-v1.13：新 GPS 巡查點 ===== */
+.gps-point-summary{
+  display:block;
+  margin-top:5px;
+  font-size:12px;
+  line-height:1.55;
+  font-weight:600;
+  color:#567086;
+}

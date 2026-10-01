@@ -1,5 +1,5 @@
 
-const CACHE_NAME='ksp-security-fresh-pwa-duplicate-popup-101';
+const CACHE_NAME='ksp-security-fresh-pwa-gpspoints-113';
 
 const STATIC_ASSETS=[
   './manifest.json',

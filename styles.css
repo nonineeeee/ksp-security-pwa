@@ -1458,3 +1458,111 @@ body.popup-open{
   margin-bottom:4px;
 }
 \n\n/* =========================================================\n   fresh-v1.14.1｜已完成巡點：時間／姓名兩行顯示\n   ========================================================= */\n.hourly-point{\n  min-width:0;\n  overflow:hidden;\n}\n\n.hourly-point .point-progress-meta{\n  display:flex;\n  flex-direction:column;\n  align-items:center;\n  justify-content:center;\n  width:100%;\n  max-width:100%;\n  min-width:0;\n  margin-top:3px;\n  line-height:1.15;\n  gap:2px;\n  text-align:center;\n}\n\n.hourly-point .point-progress-time,\n.hourly-point .point-progress-name{\n  display:block;\n  width:100%;\n  max-width:100%;\n  overflow:hidden;\n  text-overflow:ellipsis;\n  white-space:nowrap;\n}\n\n.hourly-point .point-progress-time{\n  font-size:12px;\n  font-weight:800;\n}\n\n.hourly-point .point-progress-name{\n  font-size:11px;\n  font-weight:700;\n}\n\n@media (max-width:420px){\n  .hourly-point .point-progress-time{\n    font-size:11px;\n  }\n  .hourly-point .point-progress-name{\n    font-size:10px;\n  }\n}\n
+
+/* =========================================================
+   fresh-v1.14.2｜巡查進度改為手機 2 欄卡片式
+   ========================================================= */
+
+.hourly-point-grid{
+  width:100%;
+}
+
+.hourly-point{
+  box-sizing:border-box;
+  min-width:0;
+  overflow:hidden;
+}
+
+.hourly-point .point-progress-meta{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:2px!important;
+  width:100%!important;
+  min-width:0!important;
+  white-space:normal!important;
+  line-height:1.2!important;
+}
+
+.point-progress-status,
+.point-progress-time,
+.point-progress-name{
+  display:block!important;
+  width:100%!important;
+  max-width:100%!important;
+  text-align:center!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+
+.point-progress-status{
+  font-size:11px!important;
+  font-weight:800!important;
+}
+
+.point-progress-time{
+  margin-top:2px!important;
+  font-size:12px!important;
+  font-weight:800!important;
+  color:#d7f6e4!important;
+}
+
+.point-progress-name{
+  font-size:12px!important;
+  font-weight:700!important;
+  color:#aee8c8!important;
+}
+
+/* 手機：不要再 5 格並排，改成 2 欄 */
+@media(max-width:600px){
+  .hourly-patrol-row{
+    grid-template-columns:28px minmax(0,1fr) auto!important;
+  }
+
+  .hourly-point-grid{
+    grid-column:2 / -1!important;
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:7px!important;
+    overflow:visible!important;
+    margin-top:7px!important;
+  }
+
+  .hourly-point{
+    min-width:0!important;
+    min-height:72px!important;
+    padding:7px 6px!important;
+  }
+
+  .hourly-point b{
+    font-size:12px!important;
+    line-height:1.2!important;
+  }
+
+  .hourly-point small{
+    font-size:inherit!important;
+    white-space:normal!important;
+  }
+}
+
+/* 很窄的 iPhone 仍維持 2 欄，但再縮一點 */
+@media(max-width:360px){
+  .hourly-point-grid{
+    gap:5px!important;
+  }
+
+  .hourly-point{
+    padding:6px 4px!important;
+  }
+
+  .point-progress-status{
+    font-size:10px!important;
+  }
+
+  .point-progress-time,
+  .point-progress-name{
+    font-size:11px!important;
+  }
+}

@@ -2041,15 +2041,8 @@ async function submitIncident(){
   }
 }
 
-function toggleCorrectionCheckpoint(){
-  $('correctionCheckpointWrap')
-    .classList.toggle(
-      'hidden',
-      $('correctionType').value!=='巡查'
-    );
-}
 
-async async function showSuccess(title,text){
+function showSuccess(title,text){
   $('successTitle').textContent=title;
   $('successText').textContent=text;
   document.documentElement.style.overflow='hidden';

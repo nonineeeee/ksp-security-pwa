@@ -1707,3 +1707,91 @@ body.popup-open{
   text-align:center;
   border-radius:12px 12px 0 0;
 }
+
+
+/* =========================================================
+   fresh-v1.14.6｜本班前面漏巡「GPS 現場驗證補登」
+   ========================================================= */
+.backfill-patrol-panel{
+  margin:14px 0 4px;
+  border:1px solid #dfbd76;
+  border-radius:14px;
+  background:#fffdf8;
+  overflow:hidden;
+}
+
+.backfill-patrol-panel summary{
+  list-style:none;
+  cursor:pointer;
+  padding:12px 14px;
+  background:#fff5dc;
+  color:#72551b;
+  font-size:15px;
+  font-weight:900;
+}
+
+.backfill-patrol-panel summary::-webkit-details-marker{
+  display:none;
+}
+
+.backfill-patrol-panel summary::after{
+  content:"展開";
+  float:right;
+  padding:2px 7px;
+  border-radius:999px;
+  background:#ffffff;
+  color:#8b6822;
+  font-size:11px;
+}
+
+.backfill-patrol-panel[open] summary::after{
+  content:"收合";
+}
+
+.backfill-body{
+  padding:13px;
+}
+
+.backfill-warning{
+  margin-bottom:12px;
+  padding:10px 11px;
+  border-radius:10px;
+  background:#fff8e9;
+  color:#6a5528;
+  font-size:13px;
+  line-height:1.55;
+}
+
+.backfill-body select,
+.backfill-body input{
+  width:100%;
+  box-sizing:border-box;
+}
+
+.backfill-primary{
+  margin-top:12px!important;
+  background:#8a641f!important;
+  border-color:#8a641f!important;
+  color:#fff!important;
+}
+
+#backfillPatrolMessage{
+  margin-top:10px;
+}
+
+
+/* =========================================================
+   fresh-v1.14.8｜取消申請/審核，改為直接巡查時間登錄
+   ========================================================= */
+.backfill-patrol-panel summary{
+  background:#eef8fb;
+  color:#225f72;
+}
+.backfill-warning{
+  background:#f4fbfd;
+  color:#355e69;
+}
+.backfill-primary{
+  background:#176f8a!important;
+  border-color:#176f8a!important;
+}

@@ -9,7 +9,7 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=20261002-manualbelow1452">
+  <link rel="stylesheet" href="./styles.css?v=20261002-directtime148">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <title>高雄軟體園區保全勤務簽到系統</title>
 </head>
@@ -150,12 +150,7 @@
       <button id="specialExemptBtn" class="tile wide special-exempt-tile">
         <span>🌧️</span><b>特殊巡查不強制</b><small>颱風／風雨／活動支援</small>
       </button>
-
-      <button id="correctionBtn" class="tile wide correction-tile">
-        <span>📝</span><b>漏簽補登</b><small>提出補登紀錄</small>
-      </button>
-
-      <button id="clockOutBtn" class="tile wide checkout-tile">
+<button id="clockOutBtn" class="tile wide checkout-tile">
         <span>🔴</span><b>下班簽退</b><small>GPS 簽退</small>
       </button>
     </section>
@@ -240,6 +235,40 @@
         <button id="manualQrBtn" class="btn primary" type="button">登錄巡查</button>
       </div>
     </div>
+
+    <details id="backfillPatrolPanel" class="backfill-patrol-panel">
+      <summary>🕘 巡查時間登錄</summary>
+
+      <div class="backfill-body">
+        <div class="backfill-warning">
+          可選擇本班先前的巡查時間；送出時手機必須實際位於該巡查點 GPS 範圍內。
+          登錄完成後立即計入本班巡查進度。
+        </div>
+
+        <label for="backfillQr">巡查點</label>
+        <select id="backfillQr">
+          <option value="">請選擇巡查點</option>
+          <option value="P01">P01｜公園崗哨</option>
+          <option value="P02">P02｜智科大樓</option>
+          <option value="P03">P03｜鴻海大樓北側</option>
+          <option value="P04">P04｜A棟大樓後方</option>
+          <option value="P05">P05｜C棟大樓後方</option>
+        </select>
+
+        <label for="backfillDateTime">巡查時間</label>
+        <input id="backfillDateTime" type="datetime-local" step="60">
+
+        <div class="mini-note">
+          僅可登錄本班已經過的時間；若該時段屬免巡查或同班已完成該點，系統不會重複寫入。
+        </div>
+
+        <button id="submitBackfillPatrolBtn" class="btn backfill-primary" type="button">
+          📍 偵測該點 GPS 並登錄
+        </button>
+
+        <div id="backfillPatrolMessage"></div>
+      </div>
+    </details>
 
     <div id="patrolMessage"></div>
   </section>
@@ -360,61 +389,7 @@
     <button id="submitIncidentBtn" class="btn danger">送出異常回報</button>
     <div id="incidentMessage"></div>
   </section>
-
-  <section id="correctionView" class="card hidden">
-    <div class="section-head">
-      <div>
-        <div class="eyebrow">紀錄補登</div>
-        <h2>漏簽補登</h2>
-      </div>
-      <button id="correctionBackBtn" class="text-btn">返回</button>
-    </div>
-
-    <label for="correctionType">補登類型</label>
-    <select id="correctionType">
-      <option value="">請選擇</option>
-      <option value="上班">上班漏簽</option>
-      <option value="巡查">巡查漏簽</option>
-      <option value="下班">下班漏簽</option>
-    </select>
-
-    <div class="form-two">
-      <div>
-        <label for="correctionDate">日期</label>
-        <input id="correctionDate" type="date">
-      </div>
-      <div>
-        <label for="correctionTime">時間</label>
-        <input id="correctionTime" type="time">
-      </div>
-    </div>
-
-    <div id="correctionCheckpointWrap" class="hidden">
-      <label for="correctionCheckpoint">巡查點</label>
-      <select id="correctionCheckpoint">
-        <option value="">請選擇</option>
-        <option value="公園崗哨">公園崗哨</option>
-        <option value="智科大樓">智科大樓</option>
-        <option value="鴻海大樓北側">鴻海大樓北側</option>
-        <option value="新創大樓">A棟大樓後方</option>
-        <option value="鴻海大樓">C棟大樓後方</option>
-      </select>
-    </div>
-
-    <label for="correctionReason">補登原因</label>
-    <textarea id="correctionReason" rows="4" placeholder="請說明漏簽原因"></textarea>
-
-    <button id="submitCorrectionBtn" class="btn correction-submit">送出補登</button>
-    <div id="correctionMessage"></div>
-
-    <div class="section-head list-head">
-      <h3>我的補登紀錄</h3>
-      <button id="refreshCorrectionsBtn" class="text-btn">重新整理</button>
-    </div>
-    <div id="correctionList" class="records-list"></div>
-  </section>
-
-  <footer>經濟部產業園區管理局｜高雄軟體園區</footer>
+<footer>經濟部產業園區管理局｜高雄軟體園區</footer>
 
 </main>
 
@@ -488,6 +463,6 @@
 </div>
 
 <script src="./config.js"></script>
-<script src="./app.js?v=20261002-manualbelow1452"></script>
+<script src="./app.js?v=20261002-directtime148"></script>
 </body>
 </html>

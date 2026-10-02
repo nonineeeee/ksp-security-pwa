@@ -59,6 +59,7 @@ document.querySelectorAll('.manual-qr-chip').forEach(btn=>{
   });
   $('patrolBackBtn').addEventListener('click',()=>showView('mainView'));
   $('manualQrBtn').addEventListener('click',()=>processQr($('manualQr').value));
+  $('submitBackfillPatrolBtn').addEventListener('click',submitBackfillPatrol);
   $('refocusBtn').addEventListener('click',refocusCamera);
   $('zoom1Btn').addEventListener('click',()=>setCameraZoom(1));
   $('zoom15Btn').addEventListener('click',()=>setCameraZoom(1.5));
@@ -91,14 +92,8 @@ document.querySelectorAll('.manual-qr-chip').forEach(btn=>{
   $('specialExemptDate').addEventListener('change',loadSpecialExemptStatus);
   $('setSpecialExemptBtn').addEventListener('click',setSpecialExempt);
   $('cancelSpecialExemptBtn').addEventListener('click',cancelSpecialExempt);
-
-  $('correctionBtn').addEventListener('click',openCorrection);
-  $('correctionBackBtn').addEventListener('click',()=>showView('mainView'));
-  $('correctionType').addEventListener('change',toggleCorrectionCheckpoint);
-  $('submitCorrectionBtn').addEventListener('click',submitCorrection);
-  $('refreshCorrectionsBtn').addEventListener('click',loadCorrections);
-
-  $('successCloseBtn').addEventListener('click',hideSuccess);
+$('correctionType').addEventListener('change',toggleCorrectionCheckpoint);
+$('successCloseBtn').addEventListener('click',hideSuccess);
 
   checkApi();
 
@@ -127,7 +122,7 @@ function showView(id){
     'patrolView',
     'recordsView',
     'incidentView',
-    'correctionView',
+    
     'specialExemptView'
   ];
 
@@ -325,7 +320,7 @@ function logout(){
   currentPassword='';
   stopScanner();
   $('password').value='';
-  ['mainView','patrolView','recordsView','incidentView','correctionView','specialExemptView']
+  ['mainView','patrolView','recordsView','incidentView','specialExemptView']
     .forEach(id=>$(id).classList.add('hidden'));
   $('loginView').classList.remove('hidden');
   status('loginMessage','');
@@ -434,7 +429,10 @@ async function refreshDutyDashboard(){
 
     const patrolRecords=
       records.filter(
-        x=>String(x.action||'')==='定點巡查'
+        x=>{
+          const action=String(x.action||'');
+          return action==='定點巡查' || action==='定點巡查指定時間登錄';
+        }
       );
 
     const latest=
@@ -817,7 +815,7 @@ function applyDutyButtonState(){
     return;
   }
 
-  // 無班：保留異常與補登，其餘勤務操作停用
+  // 無班：保留異常與巡查時間登錄，其餘勤務操作停用
   if(!s.hasDuty){
     setActionButtonState('clockInBtn',true,'今日無排班');
     setActionButtonState('patrolBtn',true,'今日無排班');
@@ -1077,6 +1075,7 @@ async function cancelSpecialExempt(){
 function openPatrol(){
   closeScanSuccessPopup();
   showView('patrolView');
+  setBackfillTimeLimit();
   $('manualQr').value='';
   $('pointCard').classList.add('hidden');
   $('patrolSuccessBadge').classList.add('hidden');
@@ -1711,6 +1710,169 @@ async function processQr(raw){
   }
 }
 
+
+function toLocalDateTimeValue(date){
+  const pad=n=>String(n).padStart(2,'0');
+  return (
+    date.getFullYear()+'-'+
+    pad(date.getMonth()+1)+'-'+
+    pad(date.getDate())+'T'+
+    pad(date.getHours())+':'+
+    pad(date.getMinutes())
+  );
+}
+
+
+function setBackfillTimeLimit(){
+  const input=$('backfillDateTime');
+  if(!input)return;
+
+  const now=new Date();
+  input.max=toLocalDateTimeValue(now);
+
+  // 預設留白，避免誤把系統預設時間當成實際巡查時間。
+  if(input.value){
+    const picked=new Date(input.value);
+    if(isNaN(picked.getTime()) || picked.getTime()>=now.getTime()){
+      input.value='';
+    }
+  }
+}
+
+
+async function submitBackfillPatrol(){
+  if(!currentPerson){
+    return;
+  }
+
+  const qr=normalizeQr(
+    $('backfillQr').value
+  );
+
+  const backfillDateTime=
+    $('backfillDateTime').value;
+
+  if(!qr){
+    status(
+      'backfillPatrolMessage',
+      '請先選擇巡查點。',
+      'warn'
+    );
+    return;
+  }
+
+  if(!backfillDateTime){
+    status(
+      'backfillPatrolMessage',
+      '請選擇巡查時間。',
+      'warn'
+    );
+    return;
+  }
+
+  const selected=
+    new Date(
+      backfillDateTime
+    );
+
+  if(
+    isNaN(
+      selected.getTime()
+    ) ||
+    selected.getTime() >=
+      Date.now()
+  ){
+    status(
+      'backfillPatrolMessage',
+      '巡查時間必須早於目前時間。',
+      'warn'
+    );
+    return;
+  }
+
+  const btn=
+    $('submitBackfillPatrolBtn');
+
+  if(
+    !confirm(
+      `確定登錄 ${qr}？\n\n`+
+      `巡查時間：${backfillDateTime.replace('T',' ')}\n`+
+      '送出時會重新偵測手機目前 GPS；必須實際位於該巡查點範圍內。'
+    )
+  ){
+    return;
+  }
+
+  btn.disabled=true;
+  btn.textContent='正在偵測 GPS…';
+
+  try{
+    status(
+      'backfillPatrolMessage',
+      `${qr}｜正在取得目前 GPS 位置…`,
+      'info'
+    );
+
+    const gps=
+      await getGps();
+
+    status(
+      'backfillPatrolMessage',
+      `${qr}｜GPS 已取得，正在送出巡查紀錄…`,
+      'info'
+    );
+
+    const r=
+      await apiCall(
+        'patrolBackfill',
+        {
+          personId:
+            currentPerson.personId,
+          qr:
+            qr,
+          backfillDateTime:
+            backfillDateTime,
+          lat:
+            gps.lat,
+          lng:
+            gps.lng
+        }
+      );
+
+    status(
+      'backfillPatrolMessage',
+      `${r.message} 現場GPS距離：約 ${r.distance} 公尺；送出時間：${r.submittedAt}`,
+      'ok'
+    );
+
+    showSuccess(
+      '巡查登錄完成',
+      `${r.checkpoint?.name||qr}\n`+
+      `巡查時間：${r.backfillTime}\n`+
+      `送出時間：${r.submittedAt}\n`+
+      `GPS距離：約 ${r.distance} 公尺`
+    );
+
+    $('backfillQr').value='';
+    $('backfillDateTime').value='';
+
+    await refreshDutyDashboard();
+
+  }catch(e){
+    status(
+      'backfillPatrolMessage',
+      e.message,
+      'err'
+    );
+
+  }finally{
+    btn.disabled=false;
+    btn.textContent='📍 偵測該點 GPS 並登錄';
+    setBackfillTimeLimit();
+  }
+}
+
+
 async function openRecords(){
   showView('recordsView');
   await loadTodayRecords();
@@ -1879,22 +2041,6 @@ async function submitIncident(){
   }
 }
 
-function openCorrection(){
-  showView('correctionView');
-
-  const now=new Date();
-  $('correctionType').value='';
-  $('correctionReason').value='';
-  $('correctionCheckpointWrap').classList.add('hidden');
-  $('correctionDate').value=
-    `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-  $('correctionTime').value=
-    `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-
-  status('correctionMessage','');
-  loadCorrections();
-}
-
 function toggleCorrectionCheckpoint(){
   $('correctionCheckpointWrap')
     .classList.toggle(
@@ -1903,104 +2049,7 @@ function toggleCorrectionCheckpoint(){
     );
 }
 
-async function submitCorrection(){
-  if(!currentPerson)return;
-
-  const correctionType=$('correctionType').value.trim();
-  const targetDate=$('correctionDate').value.trim();
-  const targetTime=$('correctionTime').value.trim();
-  const checkpoint=$('correctionCheckpoint').value.trim();
-  const reason=$('correctionReason').value.trim();
-
-  if(!correctionType || !targetDate || !targetTime || !reason){
-    status('correctionMessage','請完整填寫補登類型、日期、時間及原因。','warn');
-    return;
-  }
-
-  if(correctionType==='巡查' && !checkpoint){
-    status('correctionMessage','巡查補登請選擇巡查點。','warn');
-    return;
-  }
-
-  const btn=$('submitCorrectionBtn');
-  btn.disabled=true;
-  btn.textContent='送出中…';
-
-  try{
-    const gps=await getGps();
-
-    const r=await apiCall('correction',{
-      personId:currentPerson.personId,
-      correctionType,
-      targetDate,
-      targetTime,
-      checkpoint:correctionType==='巡查'?checkpoint:'',
-      reason,
-      lat:gps.lat,
-      lng:gps.lng
-    });
-
-    showSuccess(
-      '補登已送出',
-      `申請編號：${r.requestId}`
-    );
-
-    $('correctionReason').value='';
-    status('correctionMessage',r.message,'ok');
-    await loadCorrections();
-
-  }catch(e){
-    status('correctionMessage',e.message,'err');
-
-  }finally{
-    btn.disabled=false;
-    btn.textContent='送出補登';
-  }
-}
-
-async function loadCorrections(){
-  if(!currentPerson)return;
-
-  const box=$('correctionList');
-  box.innerHTML='<div class="empty">讀取中…</div>';
-
-  try{
-    const r=await apiCall('myCorrections',{
-      personId:currentPerson.personId
-    });
-
-    const items=r.records||[];
-
-    if(!items.length){
-      box.innerHTML='<div class="empty">尚無補登紀錄。</div>';
-      return;
-    }
-
-    box.innerHTML=items
-      .slice()
-      .reverse()
-      .map(x=>`
-        <div class="record-item">
-          <div class="record-top">
-            <div>
-              <strong>${esc(x.correctionType||'補登')}</strong>
-              <div class="eyebrow">${esc(x.targetDate||'')} ${esc(x.targetTime||'')}</div>
-            </div>
-            <div class="record-time">${esc(x.status||'待處理')}</div>
-          </div>
-          <div class="record-meta">
-            ${x.checkpoint?`<span class="chip">${esc(x.checkpoint)}</span>`:''}
-            <span class="chip">${esc(x.reason||'')}</span>
-          </div>
-        </div>
-      `).join('');
-
-  }catch(e){
-    box.innerHTML=`<div class="empty">${esc(e.message)}</div>`;
-  }
-}
-
-function showSuccess(title,text){
+async async function showSuccess(title,text){
   $('successTitle').textContent=title;
   $('successText').textContent=text;
   document.documentElement.style.overflow='hidden';

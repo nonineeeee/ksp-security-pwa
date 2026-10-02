@@ -9,7 +9,7 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=20261002-apiinit1482">
+  <link rel="stylesheet" href="./styles.css?v=20261002-rostersub149">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <title>高雄軟體園區保全勤務簽到系統</title>
 </head>
@@ -20,7 +20,7 @@
     <div class="logo">🛡️</div>
     <div>
       <h1>高雄軟體園區<br>保全勤務定點簽到系統</h1>
-      <p>全新重建版｜fresh-v1.14.8.3</p>
+      <p>班表巡查版｜fresh-v1.14.9</p>
     </div>
   </header>
 
@@ -86,9 +86,11 @@
       <div class="info-grid">
         <div class="info-item"><span>班別</span><strong id="todayShift">—</strong></div>
         <div class="info-item"><span>勤務日期</span><strong id="dutyDate">—</strong></div>
-        <div class="info-item"><span>上班</span><strong id="dutyStart">—</strong></div>
-        <div class="info-item"><span>下班</span><strong id="dutyEnd">—</strong></div>
+        <div class="info-item"><span>勤務開始</span><strong id="dutyStart">—</strong></div>
+        <div class="info-item"><span>勤務結束</span><strong id="dutyEnd">—</strong></div>
       </div>
+
+      <div id="substituteDutyNotice" class="mini-note hidden"></div>
 
       <div id="patrolProgressCard" class="patrol-progress patrol-progress-collapsed">
         <button
@@ -132,14 +134,11 @@
     </section>
 
     <section class="actions">
-      <button id="clockInBtn" class="tile">
-        <span>🟢</span><b>上班簽到</b><small>GPS 350 公尺</small>
-      </button>
-
       <button id="patrolBtn" class="tile">
         <span>📷</span><b>定點巡查</b><small>QR＋GPS</small>
       </button>
-<button id="incidentBtn" class="tile">
+
+      <button id="incidentBtn" class="tile">
         <span>⚠️</span><b>異常事件</b><small>拍照＋GPS</small>
       </button>
 
@@ -147,11 +146,12 @@
         <span>📋</span><b>本班紀錄</b><small>本班勤務紀錄</small>
       </button>
 
+      <button id="substituteBtn" class="tile">
+        <span>🔄</span><b>代班設定</b><small>請假／臨時代班</small>
+      </button>
+
       <button id="specialExemptBtn" class="tile wide special-exempt-tile">
         <span>🌧️</span><b>特殊巡查不強制</b><small>颱風／風雨／活動支援</small>
-      </button>
-<button id="clockOutBtn" class="tile wide checkout-tile">
-        <span>🔴</span><b>下班簽退</b><small>GPS 簽退</small>
       </button>
     </section>
   </section>
@@ -284,7 +284,7 @@
 
     <div class="notice">
       同班只要一位保全設定，該勤務日同班所有保全同步生效。
-      設定後，每小時共同巡查改為不強制；如現場狀況允許，仍可照常掃 QR 巡查打卡。上班簽到與下班簽退仍須每人正常執行。
+      設定後，每小時共同巡查改為不強制；如現場狀況允許，仍可照常掃 QR 巡查。勤務身分由班表與代班設定判定。
     </div>
 
     <div id="specialExemptCurrent" class="special-exempt-current">
@@ -327,6 +327,65 @@
     </div>
 
     <div id="specialExemptMessage"></div>
+  </section>
+
+  <section id="substituteView" class="card hidden">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">班表臨時調整</div>
+        <h2>代班設定</h2>
+      </div>
+      <button id="substituteBackBtn" class="text-btn">返回</button>
+    </div>
+
+    <div class="notice">
+      班表仍是勤務判斷基準。若原排班人員請假，可在此指定代班人員；
+      設定後原排班人員暫停該班巡查權限，代班人員立即取得同一勤務日期、班別與巡查進度。
+    </div>
+
+    <label for="substituteDate">勤務日期</label>
+    <input id="substituteDate" type="date">
+
+    <label for="substituteOriginal">原排班人員</label>
+    <select id="substituteOriginal">
+      <option value="">請先選擇勤務日期</option>
+    </select>
+
+    <label for="substitutePerson">代班人員</label>
+    <select id="substitutePerson">
+      <option value="">請選擇代班人員</option>
+    </select>
+
+    <label for="substituteReason">代班原因</label>
+    <select id="substituteReason">
+      <option value="請假代班">請假代班</option>
+      <option value="臨時調班">臨時調班</option>
+      <option value="勤務支援">勤務支援</option>
+      <option value="其他">其他</option>
+    </select>
+
+    <label for="substituteNote">說明（選填）</label>
+    <textarea id="substituteNote" rows="3" maxlength="300"
+      placeholder="例如：楊員請假，由曾員代白班。"></textarea>
+
+    <button id="setSubstituteBtn" class="btn primary" type="button">
+      套用代班設定
+    </button>
+
+    <div id="substituteMessage"></div>
+
+    <div class="section-head list-head">
+      <h3>目前代班</h3>
+      <button id="refreshSubstituteBtn" class="text-btn" type="button">重新整理</button>
+    </div>
+
+    <div id="substituteCurrentList" class="records-list">
+      <div class="empty">尚未讀取。</div>
+    </div>
+
+    <div class="mini-note">
+      代班不需要審核。設定或取消後立即生效；原班表不會被刪除，系統另以「代班設定」工作表保存異動紀錄。
+    </div>
   </section>
 
   <section id="recordsView" class="card hidden">
@@ -463,6 +522,6 @@
 </div>
 
 <script src="./config.js"></script>
-<script src="./app.js?v=20261002-fastgps1483"></script>
+<script src="./app.js?v=20261002-rostersub149"></script>
 </body>
 </html>

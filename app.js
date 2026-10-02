@@ -17,8 +17,6 @@ const GPS_WARM_MAX_AGE_MS=15000;
 const GPS_WARM_GOOD_ACCURACY_M=60;
 let todayDutyState={
   hasDuty:false,
-  clockedIn:false,
-  clockedOut:false,
   patrolCount:0,
   patrolProgress:null,
   specialExempt:null,
@@ -35,17 +33,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   $('loginBtn').addEventListener('click',login);
   $('logoutBtn').addEventListener('click',logout);
-  $('clockInBtn').addEventListener('click',()=>{
-    if($('clockInBtn').disabled)return;
-    doClock('clockIn');
-  });
-
-  $('clockOutBtn').addEventListener('click',()=>{
-    if($('clockOutBtn').disabled)return;
-    doClock('clockOut');
-  });
-
-  $('patrolBtn').addEventListener('click',()=>{
+$('patrolBtn').addEventListener('click',()=>{
     if($('patrolBtn').disabled)return;
     openPatrol();
   });
@@ -87,6 +75,12 @@ document.querySelectorAll('.manual-qr-chip').forEach(btn=>{
   $('recordsBackBtn').addEventListener('click',()=>showView('mainView'));
   $('refreshRecordsBtn').addEventListener('click',loadTodayRecords);
 
+  $('substituteBtn').addEventListener('click',openSubstitute);
+  $('substituteBackBtn').addEventListener('click',()=>showView('mainView'));
+  $('substituteDate').addEventListener('change',loadSubstituteOptions);
+  $('setSubstituteBtn').addEventListener('click',setSubstitute);
+  $('refreshSubstituteBtn').addEventListener('click',loadSubstituteOptions);
+
   $('incidentBtn').addEventListener('click',openIncident);
   $('incidentBackBtn').addEventListener('click',()=>showView('mainView'));
   $('incidentPhoto').addEventListener('change',previewPhoto);
@@ -127,7 +121,7 @@ function showView(id){
     'patrolView',
     'recordsView',
     'incidentView',
-    
+    'substituteView',
     'specialExemptView'
   ];
 
@@ -314,10 +308,27 @@ async function login(){
 }
 
 function renderDuty(duty){
-  $('todayShift').textContent=duty?.shift||'今日無排班';
+  $('todayShift').textContent=
+    duty
+      ? `${duty.shift||''}${duty.isSubstitute?'｜代班':''}`
+      : '今日無排班';
+
   $('dutyDate').textContent=duty?.dutyDate||'—';
   $('dutyStart').textContent=duty?.startTime||'—';
   $('dutyEnd').textContent=duty?.endTime||'—';
+
+  const notice=$('substituteDutyNotice');
+
+  if(notice){
+    if(duty?.isSubstitute){
+      notice.textContent=
+        `目前為代班勤務｜原排班：${duty.substituteForName||duty.substituteForId||'—'}`;
+      notice.classList.remove('hidden');
+    }else{
+      notice.textContent='';
+      notice.classList.add('hidden');
+    }
+  }
 }
 
 function logout(){
@@ -326,7 +337,7 @@ function logout(){
   currentPassword='';
   stopScanner();
   $('password').value='';
-  ['mainView','patrolView','recordsView','incidentView','specialExemptView']
+  ['mainView','patrolView','recordsView','incidentView','substituteView','specialExemptView']
     .forEach(id=>$(id).classList.add('hidden'));
   $('loginView').classList.remove('hidden');
   status('loginMessage','');
@@ -497,100 +508,101 @@ function getGps(){
   });
 }
 
-async function doClock(action){
-  if(!currentPerson)return;
-
-  const isOut=action==='clockOut';
-  const title=isOut?'下班簽退':'上班簽到';
-
-  if(isOut && !confirm('確認本班勤務已完成，現在進行下班簽退？')){
-    return;
-  }
-
-  status('mainMessage',`正在取得 GPS，準備${title}…`,'info');
-
-  try{
-    const gps=await getGps();
-
-    const r=await apiCall(action,{
-      personId:currentPerson.personId,
-      lat:gps.lat,
-      lng:gps.lng
-    });
-
-    currentDuty=r.duty||currentDuty;
-    renderDuty(currentDuty);
-
-    showSuccess(
-      title+'完成',
-      `${r.message}\n時間：${r.serverTime}\nGPS距離：約 ${r.distance} 公尺`
-    );
-
-    status('mainMessage',r.message,'ok');
-    await refreshDutyDashboard();
-
-  }catch(e){
-    status('mainMessage',e.message,'err');
-  }
-}
-
-
 async function refreshDutyDashboard(){
   if(!currentPerson){
     return;
   }
 
   try{
-    const [recordsResult,progressResult,specialResult]=await Promise.all([
-      apiCall('dutyRecords',{
-        personId:currentPerson.personId
-      }),
-      apiCall('dutyProgress',{
-        personId:currentPerson.personId
-      }),
-      apiCall('specialExemptStatus',{
-        personId:currentPerson.personId,
-        dutyDate:currentDuty?.dutyDate||''
-      })
+    // 每次更新先重新取得有效勤務，代班設定可立即反映。
+    const dutyResult=
+      await apiCall(
+        'duty',
+        {
+          personId:
+            currentPerson.personId
+        }
+      );
+
+    currentDuty=
+      dutyResult.duty||null;
+
+    renderDuty(
+      currentDuty
+    );
+
+    const [
+      recordsResult,
+      progressResult,
+      specialResult
+    ]=await Promise.all([
+      apiCall(
+        'dutyRecords',
+        {
+          personId:
+            currentPerson.personId
+        }
+      ),
+      apiCall(
+        'dutyProgress',
+        {
+          personId:
+            currentPerson.personId
+        }
+      ),
+      apiCall(
+        'specialExemptStatus',
+        {
+          personId:
+            currentPerson.personId,
+          dutyDate:
+            currentDuty?.dutyDate||''
+        }
+      )
     ]);
 
     const records=
-      Array.isArray(recordsResult.records)
+      Array.isArray(
+        recordsResult.records
+      )
         ? recordsResult.records
         : [];
-
-    const clockInRecord=
-      records.find(
-        x=>String(x.action||'')==='上班簽到'
-      ) || null;
-
-    const clockOutRecord=
-      records.find(
-        x=>String(x.action||'')==='下班簽退'
-      ) || null;
 
     const patrolRecords=
       records.filter(
         x=>{
-          const action=String(x.action||'');
-          return action==='定點巡查' || action==='定點巡查指定時間登錄';
+          const action=
+            String(
+              x.action||''
+            );
+
+          return (
+            action==='定點巡查' ||
+            action==='定點巡查指定時間登錄'
+          );
         }
       );
 
     const latest=
       records.length
-        ? records[records.length-1]
+        ? records[
+            records.length-1
+          ]
         : null;
 
     todayDutyState={
-      hasDuty:!!currentDuty,
-      clockedIn:!!clockInRecord,
-      clockedOut:!!clockOutRecord,
-      patrolCount:patrolRecords.length,
-      patrolProgress:progressResult||null,
-      specialExempt:specialResult||null,
-      lastAction:latest?.action||'',
-      lastTime:latest?.time||''
+      hasDuty:
+        !!currentDuty,
+      patrolCount:
+        patrolRecords.length,
+      patrolProgress:
+        progressResult||null,
+      specialExempt:
+        specialResult||null,
+      lastAction:
+        latest?.action||'',
+      lastTime:
+        latest?.time||''
     };
 
     renderDutyDashboard();
@@ -598,9 +610,8 @@ async function refreshDutyDashboard(){
 
   }catch(e){
     todayDutyState={
-      hasDuty:!!currentDuty,
-      clockedIn:false,
-      clockedOut:false,
+      hasDuty:
+        !!currentDuty,
       patrolCount:0,
       patrolProgress:null,
       specialExempt:null,
@@ -610,6 +621,12 @@ async function refreshDutyDashboard(){
 
     renderDutyDashboard();
     renderHourlyPatrolProgress();
+
+    status(
+      'mainMessage',
+      e.message,
+      'err'
+    );
   }
 }
 
@@ -630,40 +647,30 @@ function renderDutyDashboard(){
 
   let stateClass='state-neutral';
   let stateIcon='○';
-  let stateText='今日無排班';
+  let stateText='目前無有效排班';
 
-  if(todayDutyState.hasDuty && !todayDutyState.clockedIn){
-    stateClass='state-wait';
-    stateIcon='●';
-    stateText='尚未上班簽到';
-  }
-
-  if(
-    todayDutyState.hasDuty &&
-    todayDutyState.clockedIn &&
-    !todayDutyState.clockedOut
-  ){
+  if(todayDutyState.hasDuty){
     stateClass='state-active';
     stateIcon='✓';
-    stateText='已上班｜勤務中';
+
+    if(currentDuty?.isSubstitute){
+      stateText=
+        `代班勤務｜${currentDuty.shift||''}`;
+    }else{
+      stateText=
+        `依班表勤務｜${currentDuty?.shift||''}`;
+    }
   }
 
-  if(
-    todayDutyState.hasDuty &&
-    todayDutyState.clockedOut
-  ){
-    stateClass='state-done';
-    stateIcon='✓';
-    stateText='已簽退｜勤務完成';
-  }
+  panel.classList.add(
+    stateClass
+  );
 
-  const special=
-    todayDutyState.specialExempt;
+  icon.textContent=
+    stateIcon;
 
-  // 特殊情況只影響巡查是否強制，不取代首頁的上下班勤務狀態。
-  panel.classList.add(stateClass);
-  icon.textContent=stateIcon;
-  text.textContent=stateText;
+  text.textContent=
+    stateText;
 
   const progress=todayDutyState.patrolProgress;
 
@@ -916,77 +923,47 @@ function renderHourlyPatrolProgress(){
 }
 
 function applyDutyButtonState(){
-  const s=todayDutyState;
+  const s=
+    todayDutyState;
 
-  if(s.specialExempt?.exempt){
-    const reason=
-      s.specialExempt.record?.reason||'特殊情形';
-
-    if(!s.hasDuty){
-      setActionButtonState('clockInBtn',true,'今日無排班');
-      setActionButtonState('patrolBtn',true,'今日無排班');
-      setActionButtonState('clockOutBtn',true,'今日無排班');
-      return;
-    }
-
-    if(!s.clockedIn){
-      setActionButtonState('clockInBtn',false);
-      setActionButtonState('patrolBtn',true,'請先完成上班簽到');
-      setActionButtonState('clockOutBtn',true,'請先完成上班簽到');
-      return;
-    }
-
-    if(s.clockedIn && !s.clockedOut){
-      setActionButtonState('clockInBtn',true,'已完成上班簽到');
-
-      // 巡查不強制，但仍可正常掃 QR + GPS 打卡。
-      setActionButtonState('patrolBtn',false);
-      const patrolBtn=$('patrolBtn');
-      const small=patrolBtn?.querySelector('small');
-      if(small){
-        small.textContent=`不強制｜仍可巡查｜${reason}`;
-      }
-
-      setActionButtonState('clockOutBtn',false);
-      return;
-    }
-
-    setActionButtonState('clockInBtn',true,'本班已完成');
-    setActionButtonState('patrolBtn',true,'本班已完成');
-    setActionButtonState('clockOutBtn',true,'已完成下班簽退');
-    return;
-  }
-
-  // 無班：保留異常與巡查時間登錄，其餘勤務操作停用
   if(!s.hasDuty){
-    setActionButtonState('clockInBtn',true,'今日無排班');
-    setActionButtonState('patrolBtn',true,'今日無排班');
-    setActionButtonState('clockOutBtn',true,'今日無排班');
+    setActionButtonState(
+      'patrolBtn',
+      true,
+      '目前沒有有效排班；如為臨時代班，請先完成代班設定。'
+    );
     return;
   }
 
-  // 尚未上班
-  if(!s.clockedIn){
-    setActionButtonState('clockInBtn',false);
-    setActionButtonState('patrolBtn',true,'請先完成上班簽到');
-    setActionButtonState('clockOutBtn',true,'請先完成上班簽到');
-    return;
-  }
+  setActionButtonState(
+    'patrolBtn',
+    false
+  );
 
-  // 勤務中
-  if(s.clockedIn && !s.clockedOut){
-    setActionButtonState('clockInBtn',true,'已完成上班簽到');
-    setActionButtonState('patrolBtn',false);
-    setActionButtonState('clockOutBtn',false);
-    return;
-  }
+  const patrolBtn=
+    $('patrolBtn');
 
-  // 已簽退
-  setActionButtonState('clockInBtn',true,'本班已完成');
-  setActionButtonState('patrolBtn',true,'本班已完成簽退');
-  setActionButtonState('clockOutBtn',true,'已完成下班簽退');
+  const small=
+    patrolBtn?.querySelector(
+      'small'
+    );
+
+  if(small){
+    if(
+      s.specialExempt?.exempt
+    ){
+      const reason=
+        s.specialExempt.record?.reason||
+        '特殊情形';
+
+      small.textContent=
+        `不強制｜仍可巡查｜${reason}`;
+    }else{
+      small.textContent=
+        'QR＋GPS';
+    }
+  }
 }
-
 
 
 function dutyDateToInput(dateText){
@@ -1123,7 +1100,7 @@ async function setSpecialExempt(){
 
   const ok=confirm(
     `確定將 ${dutyDate} 本班設為「${reason}」巡查不強制？\n\n`+
-    '同班只要一人設定，整班同步生效；上班簽到與下班簽退仍須每人正常執行。'
+    '同班只要一人設定，整班同步生效；勤務身分仍依班表與代班設定判定。'
   );
 
   if(!ok){
@@ -2014,6 +1991,426 @@ async function submitBackfillPatrol(){
     btn.disabled=false;
     btn.textContent='📍 偵測該點 GPS 並登錄';
     setBackfillTimeLimit();
+  }
+}
+
+
+
+function defaultSubstituteDutyDate_(){
+  if(currentDuty?.dutyDate){
+    return dutyDateToInput(
+      currentDuty.dutyDate
+    );
+  }
+
+  const d=new Date();
+
+  // 晚班跨日：凌晨 0～6 點預設以前一日作為勤務日期。
+  if(d.getHours()<6){
+    d.setDate(
+      d.getDate()-1
+    );
+  }
+
+  const y=d.getFullYear();
+  const m=String(
+    d.getMonth()+1
+  ).padStart(2,'0');
+  const day=String(
+    d.getDate()
+  ).padStart(2,'0');
+
+  return `${y}-${m}-${day}`;
+}
+
+
+function openSubstitute(){
+  if(!currentPerson){
+    return;
+  }
+
+  showView(
+    'substituteView'
+  );
+
+  if(
+    !$('substituteDate').value
+  ){
+    $('substituteDate').value=
+      defaultSubstituteDutyDate_();
+  }
+
+  status(
+    'substituteMessage',
+    ''
+  );
+
+  loadSubstituteOptions();
+}
+
+
+async function loadSubstituteOptions(){
+  if(!currentPerson){
+    return;
+  }
+
+  const dutyDate=
+    $('substituteDate').value;
+
+  const original=
+    $('substituteOriginal');
+
+  const substitute=
+    $('substitutePerson');
+
+  const list=
+    $('substituteCurrentList');
+
+  if(!dutyDate){
+    original.innerHTML=
+      '<option value="">請先選擇勤務日期</option>';
+
+    substitute.innerHTML=
+      '<option value="">請先選擇勤務日期</option>';
+
+    list.innerHTML=
+      '<div class="empty">請先選擇勤務日期。</div>';
+
+    return;
+  }
+
+  original.innerHTML=
+    '<option value="">讀取班表中…</option>';
+
+  substitute.innerHTML=
+    '<option value="">讀取人員中…</option>';
+
+  list.innerHTML=
+    '<div class="empty">讀取中…</div>';
+
+  try{
+    const r=
+      await apiCall(
+        'substituteOptions',
+        {
+          personId:
+            currentPerson.personId,
+          password:
+            currentPassword,
+          dutyDate:
+            dutyDate
+        }
+      );
+
+    const roster=
+      Array.isArray(r.roster)
+        ? r.roster
+        : [];
+
+    const staff=
+      Array.isArray(r.staff)
+        ? r.staff
+        : [];
+
+    original.innerHTML=
+      '<option value="">請選擇原排班人員</option>'+
+      roster.map(
+        x=>{
+          const replacement=
+            x.replacement
+              ? ` → 目前由 ${x.replacement.substituteName} 代班`
+              : '';
+
+          return (
+            `<option value="${esc(x.personId)}|${esc(x.shift)}">`+
+            `${esc(x.shift)}｜${esc(x.name)} (${esc(x.personId)})`+
+            `${esc(replacement)}`+
+            '</option>'
+          );
+        }
+      ).join('');
+
+    substitute.innerHTML=
+      '<option value="">請選擇代班人員</option>'+
+      staff.map(
+        x=>
+          `<option value="${esc(x.personId)}">`+
+          `${esc(x.name)} (${esc(x.personId)})`+
+          `${x.defaultShift?`｜${esc(x.defaultShift)}`:''}`+
+          '</option>'
+      ).join('');
+
+    renderSubstituteList(
+      r.activeSubstitutions||[]
+    );
+
+  }catch(e){
+    original.innerHTML=
+      '<option value="">讀取失敗</option>';
+
+    substitute.innerHTML=
+      '<option value="">讀取失敗</option>';
+
+    list.innerHTML=
+      `<div class="empty">${esc(e.message)}</div>`;
+
+    status(
+      'substituteMessage',
+      e.message,
+      'err'
+    );
+  }
+}
+
+
+function renderSubstituteList(
+  items
+){
+  const box=
+    $('substituteCurrentList');
+
+  if(
+    !Array.isArray(items) ||
+    !items.length
+  ){
+    box.innerHTML=
+      '<div class="empty">此勤務日目前沒有代班設定。</div>';
+
+    return;
+  }
+
+  box.innerHTML=
+    items.map(
+      x=>`
+        <div class="record-item substitute-record">
+          <div class="record-top">
+            <div>
+              <strong>${esc(x.shift||'')}</strong>
+              <div class="eyebrow">${esc(x.dutyDate||'')}</div>
+            </div>
+            <button
+              class="text-btn substitute-cancel-btn"
+              type="button"
+              data-id="${esc(x.substitutionId||'')}"
+            >取消代班</button>
+          </div>
+
+          <div class="substitute-arrow-row">
+            <span>${esc(x.originalName||x.originalPersonId||'—')}</span>
+            <b>→</b>
+            <strong>${esc(x.substituteName||x.substitutePersonId||'—')}</strong>
+          </div>
+
+          <div class="record-meta">
+            <span class="chip">${esc(x.reason||'代班')}</span>
+            ${x.note?`<span class="chip">${esc(x.note)}</span>`:''}
+          </div>
+
+          <small>
+            設定：${esc(x.createdByName||'—')}｜${esc(x.createdAt||'—')}
+          </small>
+        </div>
+      `
+    ).join('');
+
+  box
+    .querySelectorAll(
+      '.substitute-cancel-btn'
+    )
+    .forEach(
+      btn=>{
+        btn.addEventListener(
+          'click',
+          ()=>{
+            cancelSubstitute(
+              btn.dataset.id
+            );
+          }
+        );
+      }
+    );
+}
+
+
+async function setSubstitute(){
+  if(!currentPerson){
+    return;
+  }
+
+  const dutyDate=
+    $('substituteDate').value;
+
+  const originalValue=
+    $('substituteOriginal').value;
+
+  const substitutePersonId=
+    $('substitutePerson').value;
+
+  const reason=
+    $('substituteReason').value;
+
+  const note=
+    $('substituteNote').value.trim();
+
+  if(
+    !dutyDate ||
+    !originalValue ||
+    !substitutePersonId
+  ){
+    status(
+      'substituteMessage',
+      '請完整選擇勤務日期、原排班人員及代班人員。',
+      'warn'
+    );
+    return;
+  }
+
+  const [
+    originalPersonId,
+    shift
+  ]=
+    originalValue.split('|');
+
+  if(
+    originalPersonId ===
+    substitutePersonId
+  ){
+    status(
+      'substituteMessage',
+      '原排班人員與代班人員不可為同一人。',
+      'warn'
+    );
+    return;
+  }
+
+  const originalText=
+    $('substituteOriginal')
+      .selectedOptions[0]
+      ?.textContent||originalPersonId;
+
+  const substituteText=
+    $('substitutePerson')
+      .selectedOptions[0]
+      ?.textContent||substitutePersonId;
+
+  const ok=
+    confirm(
+      `確定套用代班？\n\n`+
+      `${originalText}\n→ ${substituteText}\n\n`+
+      '套用後立即生效，不需審核。'
+    );
+
+  if(!ok){
+    return;
+  }
+
+  const btn=
+    $('setSubstituteBtn');
+
+  btn.disabled=true;
+  btn.textContent='設定中…';
+
+  try{
+    const r=
+      await apiCall(
+        'substituteSet',
+        {
+          personId:
+            currentPerson.personId,
+          password:
+            currentPassword,
+          dutyDate:
+            dutyDate,
+          shift:
+            shift,
+          originalPersonId:
+            originalPersonId,
+          substitutePersonId:
+            substitutePersonId,
+          reason:
+            reason,
+          note:
+            note
+        }
+      );
+
+    status(
+      'substituteMessage',
+      r.message,
+      'ok'
+    );
+
+    showSuccess(
+      '代班設定完成',
+      r.message
+    );
+
+    $('substituteNote').value='';
+
+    await loadSubstituteOptions();
+    await refreshDutyDashboard();
+
+  }catch(e){
+    status(
+      'substituteMessage',
+      e.message,
+      'err'
+    );
+
+  }finally{
+    btn.disabled=false;
+    btn.textContent='套用代班設定';
+  }
+}
+
+
+async function cancelSubstitute(
+  substitutionId
+){
+  if(
+    !currentPerson ||
+    !substitutionId
+  ){
+    return;
+  }
+
+  if(
+    !confirm(
+      '確定取消此代班設定並恢復原班表？'
+    )
+  ){
+    return;
+  }
+
+  try{
+    const r=
+      await apiCall(
+        'substituteCancel',
+        {
+          personId:
+            currentPerson.personId,
+          password:
+            currentPassword,
+          substitutionId:
+            substitutionId
+        }
+      );
+
+    status(
+      'substituteMessage',
+      r.message,
+      'ok'
+    );
+
+    await loadSubstituteOptions();
+    await refreshDutyDashboard();
+
+  }catch(e){
+    status(
+      'substituteMessage',
+      e.message,
+      'err'
+    );
   }
 }
 

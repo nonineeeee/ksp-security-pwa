@@ -1795,3 +1795,72 @@ body.popup-open{
   background:#176f8a!important;
   border-color:#176f8a!important;
 }
+
+
+/* =========================================================
+   fresh-v1.14.9｜班表巡查＋代班設定
+   ========================================================= */
+
+#substituteDutyNotice{
+  margin-top:10px;
+  border-left:4px solid #2b8caf;
+  background:#eef9fd;
+  color:#28586a;
+  font-weight:800;
+}
+
+.substitute-record{
+  border-left:4px solid #2b8caf;
+}
+
+.substitute-arrow-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+  align-items:center;
+  gap:8px;
+  margin:9px 0;
+  padding:9px;
+  border-radius:10px;
+  background:#f5fafc;
+  color:#365563;
+}
+
+.substitute-arrow-row span,
+.substitute-arrow-row strong{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.substitute-arrow-row strong{
+  text-align:right;
+  color:#145b73;
+}
+
+.substitute-cancel-btn{
+  color:#9a4c32!important;
+  font-weight:800;
+}
+
+#substituteView .notice{
+  margin-bottom:14px;
+}
+
+#substituteView select,
+#substituteView input,
+#substituteView textarea{
+  width:100%;
+  box-sizing:border-box;
+}
+
+@media(max-width:420px){
+  .substitute-arrow-row{
+    grid-template-columns:1fr;
+    text-align:center;
+  }
+
+  .substitute-arrow-row strong{
+    text-align:center;
+  }
+}

@@ -1,5 +1,5 @@
 
-const CACHE_NAME='ksp-security-fresh-pwa-manualqr-145';
+const CACHE_NAME='ksp-security-fresh-pwa-manual-below-camera-1452';
 
 const STATIC_ASSETS=[
   './manifest.json',

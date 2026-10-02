@@ -43,6 +43,20 @@ document.addEventListener('DOMContentLoaded',()=>{
     if($('patrolBtn').disabled)return;
     openPatrol();
   });
+document.querySelectorAll('.manual-qr-chip').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const qr=btn.dataset.qr||'';
+      $('manualQr').value=qr;
+      $('manualQr').focus();
+    });
+  });
+
+  $('manualQr').addEventListener('keydown',e=>{
+    if(e.key==='Enter'){
+      e.preventDefault();
+      processQr($('manualQr').value);
+    }
+  });
   $('patrolBackBtn').addEventListener('click',()=>showView('mainView'));
   $('manualQrBtn').addEventListener('click',()=>processQr($('manualQr').value));
   $('refocusBtn').addEventListener('click',refocusCamera);
@@ -1072,6 +1086,7 @@ function openPatrol(){
   scannerPausedAfterSuccess=false;
   startScanner();
 }
+
 
 function normalizeQr(raw){
   let text=String(raw||'').trim();

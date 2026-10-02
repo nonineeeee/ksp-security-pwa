@@ -9,7 +9,7 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=20261001-progresscards142">
+  <link rel="stylesheet" href="./styles.css?v=20261002-manualbelow1452">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <title>高雄軟體園區保全勤務簽到系統</title>
 </head>
@@ -139,8 +139,7 @@
       <button id="patrolBtn" class="tile">
         <span>📷</span><b>定點巡查</b><small>QR＋GPS</small>
       </button>
-
-      <button id="incidentBtn" class="tile">
+<button id="incidentBtn" class="tile">
         <span>⚠️</span><b>異常事件</b><small>拍照＋GPS</small>
       </button>
 
@@ -170,8 +169,7 @@
       </div>
       <button id="patrolBackBtn" class="text-btn">返回</button>
     </div>
-
-    <div class="notice">
+<div class="notice">
       請將 QR Code 保持在鏡頭前約 20～35 公分並穩定 1 秒。
       若畫面模糊，可按「重新對焦」；手機支援時也可使用 1.5×／2×。
     </div>
@@ -208,9 +206,40 @@
       </div>
     </div>
 
-    <label for="manualQr">無法掃描時手動輸入 QR 識別碼</label>
-    <input id="manualQr" placeholder="例如 KSP-P01">
-    <button id="manualQrBtn" class="btn outline">確認識別碼</button>
+    <div id="manualPatrolPanel" class="manual-patrol-panel">
+      <div class="manual-patrol-head">
+        <div>
+          <div class="eyebrow">QR 無法掃描時，可改用人工登錄</div>
+          <strong>人工登錄巡查</strong>
+        </div>
+        <span class="manual-patrol-badge">GPS 驗證</span>
+      </div>
+
+      <div class="manual-patrol-note">
+        若 QR Code 無法掃描，可在下方輸入 P01～P05。人工登錄仍會檢查 GPS、班表、巡查時段及重複巡查。
+      </div>
+
+      <div class="manual-quick-grid">
+        <button type="button" class="manual-qr-chip" data-qr="P01">P01<br><small>公園崗哨</small></button>
+        <button type="button" class="manual-qr-chip" data-qr="P02">P02<br><small>智科大樓</small></button>
+        <button type="button" class="manual-qr-chip" data-qr="P03">P03<br><small>鴻海北側</small></button>
+        <button type="button" class="manual-qr-chip" data-qr="P04">P04<br><small>A棟後方</small></button>
+        <button type="button" class="manual-qr-chip" data-qr="P05">P05<br><small>C棟後方</small></button>
+      </div>
+
+      <label for="manualQr">巡查點代碼</label>
+      <div class="manual-patrol-entry">
+        <input
+          id="manualQr"
+          inputmode="text"
+          autocomplete="off"
+          autocapitalize="characters"
+          placeholder="例如 P01"
+          maxlength="10"
+        >
+        <button id="manualQrBtn" class="btn primary" type="button">登錄巡查</button>
+      </div>
+    </div>
 
     <div id="patrolMessage"></div>
   </section>
@@ -459,6 +488,6 @@
 </div>
 
 <script src="./config.js"></script>
-<script src="./app.js?v=20261001-progresscards142"></script>
+<script src="./app.js?v=20261002-manualbelow1452"></script>
 </body>
 </html>

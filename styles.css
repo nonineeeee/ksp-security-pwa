@@ -1566,3 +1566,144 @@ body.popup-open{
     font-size:11px!important;
   }
 }
+
+
+/* =========================================================
+   fresh-v1.14.5.1｜恢復並強化「人工登錄巡查」
+   ========================================================= */
+.manual-patrol-tile{
+  border-color:#6fb9d6;
+}
+
+.manual-patrol-panel{
+  margin:12px 0 16px;
+  padding:14px;
+  border:1px solid #8ecbe0;
+  border-radius:16px;
+  background:linear-gradient(180deg,#f4fbff 0%,#ffffff 100%);
+  box-shadow:0 6px 18px rgba(19,71,103,.08);
+}
+
+.manual-patrol-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:8px;
+}
+
+.manual-patrol-head strong{
+  display:block;
+  font-size:18px;
+  line-height:1.2;
+  color:#123b5d;
+}
+
+.manual-patrol-badge{
+  flex:none;
+  padding:5px 9px;
+  border-radius:999px;
+  background:#dff6ff;
+  color:#12647c;
+  font-size:12px;
+  font-weight:800;
+}
+
+.manual-patrol-note{
+  margin-bottom:10px;
+  color:#526978;
+  font-size:13px;
+  line-height:1.55;
+}
+
+.manual-quick-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:7px;
+  margin-bottom:12px;
+}
+
+.manual-qr-chip{
+  min-width:0;
+  padding:10px 6px;
+  border:1px solid #b8dce9;
+  border-radius:12px;
+  background:#fff;
+  color:#123b5d;
+  font:inherit;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.manual-qr-chip small{
+  display:block;
+  margin-top:2px;
+  font-size:11px;
+  font-weight:700;
+  color:#607d8b;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.manual-qr-chip:active{
+  transform:scale(.98);
+  background:#eaf8fd;
+}
+
+.manual-patrol-entry{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:8px;
+  align-items:stretch;
+}
+
+.manual-patrol-entry input{
+  min-width:0;
+  margin:0!important;
+  font-size:18px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+
+.manual-patrol-entry .btn{
+  width:auto;
+  min-width:104px;
+  margin:0!important;
+  white-space:nowrap;
+}
+
+@media(max-width:390px){
+  .manual-patrol-entry{
+    grid-template-columns:1fr;
+  }
+
+  .manual-patrol-entry .btn{
+    width:100%;
+  }
+}
+
+@media(min-width:540px){
+  .manual-quick-grid{
+    grid-template-columns:repeat(5,minmax(0,1fr));
+  }
+}
+
+/* fresh-v1.14.5.2：人工登錄放回相機頁下方 */
+.manual-patrol-panel{
+  margin-top:18px!important;
+  border-top:4px solid #3a9fc0!important;
+}
+.manual-patrol-panel::before{
+  content:"若相機無法掃描，再使用下方人工登錄";
+  display:block;
+  margin:-4px -14px 12px;
+  padding:8px 12px;
+  background:#eaf7fc;
+  color:#245f73;
+  font-size:12px;
+  font-weight:800;
+  text-align:center;
+  border-radius:12px 12px 0 0;
+}

@@ -45,8 +45,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
   $('patrolBackBtn').addEventListener('click',()=>showView('mainView'));
   $('manualQrBtn').addEventListener('click',()=>processQr($('manualQr').value));
-  $('manualPatrolToggleBtn').addEventListener('click',toggleManualPatrolPanel);
-  $('submitManualPatrolBtn').addEventListener('click',submitManualPatrol);
   $('refocusBtn').addEventListener('click',refocusCamera);
   $('zoom1Btn').addEventListener('click',()=>setCameraZoom(1));
   $('zoom15Btn').addEventListener('click',()=>setCameraZoom(1.5));
@@ -805,7 +803,7 @@ function applyDutyButtonState(){
     return;
   }
 
-  // 無班：保留異常與時間修正，其餘勤務操作停用
+  // 無班：保留異常與補登，其餘勤務操作停用
   if(!s.hasDuty){
     setActionButtonState('clockInBtn',true,'今日無排班');
     setActionButtonState('patrolBtn',true,'今日無排班');
@@ -1066,15 +1064,6 @@ function openPatrol(){
   closeScanSuccessPopup();
   showView('patrolView');
   $('manualQr').value='';
-  $('manualPatrolPanel').classList.add('hidden');
-  $('manualPatrolToggleBtn').textContent='⌨️ 人工登錄巡查';
-  $('manualPatrolNote').value='';
-  $('manualPatrolGpsState').classList.remove('checking','ok','err');
-  $('manualPatrolGpsState').innerHTML=
-    '<strong>GPS 驗證</strong><span>送出時自動取得目前位置</span>';
-  status('manualPatrolMessage','');
-  setManualPatrolNow();
-  loadManualPatrolPoints();
   $('pointCard').classList.add('hidden');
   $('patrolSuccessBadge').classList.add('hidden');
   $('continueScanBtn').classList.add('hidden');
@@ -1083,223 +1072,6 @@ function openPatrol(){
   scannerPausedAfterSuccess=false;
   startScanner();
 }
-
-
-function setManualPatrolNow(){
-  const now=new Date();
-
-  $('manualPatrolDate').value=
-    `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-
-  $('manualPatrolTime').value=
-    `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-}
-
-
-async function loadManualPatrolPoints(){
-  const select=$('manualPatrolPoint');
-
-  if(!select)return;
-
-  try{
-    const r=await apiCall('checkpointList');
-
-    const points=(r.checkpoints||[])
-      .filter(x=>x.status==='啟用');
-
-    select.innerHTML=
-      '<option value="">請選擇巡查點</option>'+
-      points.map(p=>
-        `<option value="${esc(p.checkpointId)}">${esc(p.checkpointId)}｜${esc(p.name)}</option>`
-      ).join('');
-
-  }catch(e){
-    select.innerHTML='<option value="">巡查點讀取失敗</option>';
-  }
-}
-
-
-async function toggleManualPatrolPanel(){
-  const panel=$('manualPatrolPanel');
-  const btn=$('manualPatrolToggleBtn');
-
-  const opening=
-    panel.classList.contains('hidden');
-
-  if(opening){
-    await stopScanner();
-
-    panel.classList.remove('hidden');
-    btn.textContent='↩ 返回 QR 掃描';
-
-    setManualPatrolNow();
-    await loadManualPatrolPoints();
-
-    $('cameraStatus').textContent=
-      '人工登錄模式｜相機已暫停';
-
-    status(
-      'manualPatrolMessage',
-      '',
-      'info'
-    );
-
-  }else{
-    panel.classList.add('hidden');
-    btn.textContent='⌨️ 人工登錄巡查';
-
-    status(
-      'manualPatrolMessage',
-      '',
-      'info'
-    );
-
-    await startScanner();
-  }
-}
-
-
-async function submitManualPatrol(){
-  if(!currentPerson){
-    return;
-  }
-
-  const checkpointId=
-    $('manualPatrolPoint').value.trim();
-
-  const actualDate=
-    $('manualPatrolDate').value.trim();
-
-  const actualTime=
-    $('manualPatrolTime').value.trim();
-
-  const note=
-    $('manualPatrolNote').value.trim();
-
-  if(
-    !checkpointId ||
-    !actualDate ||
-    !actualTime
-  ){
-    status(
-      'manualPatrolMessage',
-      '請選擇巡查點，並填寫實際巡查日期與時間。',
-      'warn'
-    );
-    return;
-  }
-
-  const btn=
-    $('submitManualPatrolBtn');
-
-  btn.disabled=true;
-  btn.textContent='取得 GPS 中…';
-
-  try{
-    status(
-      'manualPatrolMessage',
-      '正在取得目前 GPS，並驗證巡查點位置…',
-      'info'
-    );
-
-    $('manualPatrolGpsState').classList.remove('ok','err');
-    $('manualPatrolGpsState').classList.add('checking');
-    $('manualPatrolGpsState').innerHTML=
-      '<strong>GPS 驗證</strong><span>正在取得高精度定位…</span>';
-
-    const gps=await getGps();
-
-    $('manualPatrolGpsState').innerHTML=
-      `<strong>GPS 已取得</strong><span>精度約 ±${Math.round(gps.accuracy)} 公尺，正在驗證與巡查點距離…</span>`;
-
-    btn.textContent='驗證位置中…';
-
-    const r=await apiCall(
-      'manualPatrol',
-      {
-        personId:
-          currentPerson.personId,
-        password:
-          currentPassword,
-        checkpointId:
-          checkpointId,
-        actualDate:
-          actualDate,
-        actualTime:
-          actualTime,
-        lat:
-          gps.lat,
-        lng:
-          gps.lng,
-        note:
-          note
-      }
-    );
-
-    $('manualPatrolGpsState').classList.remove('checking','err');
-    $('manualPatrolGpsState').classList.add('ok');
-    $('manualPatrolGpsState').innerHTML=
-      `<strong>✓ GPS 驗證通過</strong><span>距離巡查點約 ${Math.round(Number(r.distance||0))} 公尺</span>`;
-
-    status(
-      'manualPatrolMessage',
-      `${r.message} 實際時間：${r.actualTime}｜GPS 距離：約 ${Math.round(Number(r.distance||0))} 公尺`,
-      'ok'
-    );
-
-    $('manualPatrolNote').value='';
-
-    await refreshDutyDashboard();
-
-    if(navigator.vibrate){
-      navigator.vibrate(80);
-    }
-
-  }catch(e){
-    $('manualPatrolGpsState').classList.remove('checking','ok');
-    $('manualPatrolGpsState').classList.add('err');
-    $('manualPatrolGpsState').innerHTML=
-      '<strong>GPS 驗證未完成</strong><span>請依下方訊息確認定位或巡查點距離。</span>';
-
-    const msg=
-      String(
-        e?.message ||
-        '人工登錄失敗'
-      );
-
-    const duplicate=
-      msg.includes('已由') ||
-      msg.includes('無須重複登錄') ||
-      msg.includes('無須重複打卡');
-
-    if(duplicate){
-      status(
-        'manualPatrolMessage',
-        msg,
-        'warn'
-      );
-
-      showDuplicatePatrolPopup({
-        pointId:
-          checkpointId,
-        message:
-          msg
-      });
-
-    }else{
-      status(
-        'manualPatrolMessage',
-        msg,
-        'err'
-      );
-    }
-
-  }finally{
-    btn.disabled=false;
-    btn.textContent='確認登錄巡查紀錄';
-  }
-}
-
 
 function normalizeQr(raw){
   const text=String(raw||'').trim();
@@ -2118,12 +1890,12 @@ async function submitCorrection(){
   const reason=$('correctionReason').value.trim();
 
   if(!correctionType || !targetDate || !targetTime || !reason){
-    status('correctionMessage','請完整填寫時間修正類型、日期、時間及原因。','warn');
+    status('correctionMessage','請完整填寫補登類型、日期、時間及原因。','warn');
     return;
   }
 
   if(correctionType==='巡查' && !checkpoint){
-    status('correctionMessage','巡查時間修正請選擇巡查點。','warn');
+    status('correctionMessage','巡查補登請選擇巡查點。','warn');
     return;
   }
 
@@ -2146,7 +1918,7 @@ async function submitCorrection(){
     });
 
     showSuccess(
-      '時間修正已送出',
+      '補登已送出',
       `申請編號：${r.requestId}`
     );
 
@@ -2159,7 +1931,7 @@ async function submitCorrection(){
 
   }finally{
     btn.disabled=false;
-    btn.textContent='送出時間修正';
+    btn.textContent='送出補登';
   }
 }
 
@@ -2177,7 +1949,7 @@ async function loadCorrections(){
     const items=r.records||[];
 
     if(!items.length){
-      box.innerHTML='<div class="empty">尚無時間修正紀錄。</div>';
+      box.innerHTML='<div class="empty">尚無補登紀錄。</div>';
       return;
     }
 
@@ -2188,7 +1960,7 @@ async function loadCorrections(){
         <div class="record-item">
           <div class="record-top">
             <div>
-              <strong>${esc(x.correctionType||'時間修正')}</strong>
+              <strong>${esc(x.correctionType||'補登')}</strong>
               <div class="eyebrow">${esc(x.targetDate||'')} ${esc(x.targetTime||'')}</div>
             </div>
             <div class="record-time">${esc(x.status||'待處理')}</div>

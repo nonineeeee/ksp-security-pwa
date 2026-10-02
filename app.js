@@ -92,7 +92,6 @@ document.querySelectorAll('.manual-qr-chip').forEach(btn=>{
   $('specialExemptDate').addEventListener('change',loadSpecialExemptStatus);
   $('setSpecialExemptBtn').addEventListener('click',setSpecialExempt);
   $('cancelSpecialExemptBtn').addEventListener('click',cancelSpecialExempt);
-$('correctionType').addEventListener('change',toggleCorrectionCheckpoint);
 $('successCloseBtn').addEventListener('click',hideSuccess);
 
   checkApi();

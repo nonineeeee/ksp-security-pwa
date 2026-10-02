@@ -1074,18 +1074,26 @@ function openPatrol(){
 }
 
 function normalizeQr(raw){
-  const text=String(raw||'').trim();
+  let text=String(raw||'').trim();
 
   if(/^https?:\/\//i.test(text)){
     try{
       const u=new URL(text);
-      return (
+      text=(
         u.searchParams.get('qr') ||
         u.searchParams.get('code') ||
         text
       );
     }catch(e){}
   }
+
+  text=String(text||'')
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g,'');
+
+  // 相容舊版巡查牌／人工輸入格式：KSP-P01 → P01
+  text=text.replace(/^KSP[-_]?/,'');
 
   return text;
 }

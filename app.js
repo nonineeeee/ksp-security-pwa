@@ -9,6 +9,12 @@ let cameraCapabilities=null;
 let currentZoom=1;
 let torchOn=false;
 let scannerPausedAfterSuccess=false;
+
+// GPS 快速驗證：進入巡查頁時先背景預熱定位。
+let gpsWarmWatchId=null;
+let lastGpsFix=null;
+const GPS_WARM_MAX_AGE_MS=15000;
+const GPS_WARM_GOOD_ACCURACY_M=60;
 let todayDutyState={
   hasDuty:false,
   clockedIn:false,
@@ -137,6 +143,7 @@ function showView(id){
 
   if(id!=='patrolView'){
     stopScanner();
+    stopGpsWarmup();
   }
 
   const specialView=$('specialExemptView');
@@ -325,6 +332,88 @@ function logout(){
   status('loginMessage','');
 }
 
+function gpsFixFromPosition_(p){
+  if(!p || !p.coords){
+    return null;
+  }
+
+  const fix={
+    lat:Number(p.coords.latitude),
+    lng:Number(p.coords.longitude),
+    accuracy:Number(p.coords.accuracy||9999),
+    timestamp:Number(p.timestamp||Date.now())
+  };
+
+  if(
+    !Number.isFinite(fix.lat) ||
+    !Number.isFinite(fix.lng)
+  ){
+    return null;
+  }
+
+  return fix;
+}
+
+
+function rememberGpsFix_(p){
+  const fix=gpsFixFromPosition_(p);
+
+  if(fix){
+    lastGpsFix=fix;
+  }
+
+  return fix;
+}
+
+
+function startGpsWarmup(){
+  if(
+    !navigator.geolocation ||
+    gpsWarmWatchId!==null
+  ){
+    return;
+  }
+
+  try{
+    gpsWarmWatchId=
+      navigator.geolocation.watchPosition(
+        p=>{
+          rememberGpsFix_(p);
+        },
+        ()=>{
+          // 預熱失敗不顯示錯誤；
+          // 真正巡查時 getGps() 仍會再嘗試並顯示原因。
+        },
+        {
+          enableHighAccuracy:true,
+          timeout:8000,
+          maximumAge:5000
+        }
+      );
+  }catch(e){
+    gpsWarmWatchId=null;
+  }
+}
+
+
+function stopGpsWarmup(){
+  if(
+    gpsWarmWatchId===null ||
+    !navigator.geolocation
+  ){
+    return;
+  }
+
+  try{
+    navigator.geolocation.clearWatch(
+      gpsWarmWatchId
+    );
+  }catch(e){}
+
+  gpsWarmWatchId=null;
+}
+
+
 function getGps(){
   return new Promise((resolve,reject)=>{
     if(!navigator.geolocation){
@@ -332,23 +421,77 @@ function getGps(){
       return;
     }
 
+    // 巡查頁若已在背景取得 15 秒內、誤差 60 公尺內的位置，
+    // 直接使用，不再重新等待 GPS。
+    if(lastGpsFix){
+      const age=
+        Date.now() -
+        Number(lastGpsFix.timestamp||0);
+
+      if(
+        age>=0 &&
+        age<=GPS_WARM_MAX_AGE_MS &&
+        Number(lastGpsFix.accuracy)<=
+          GPS_WARM_GOOD_ACCURACY_M
+      ){
+        resolve({
+          lat:lastGpsFix.lat,
+          lng:lastGpsFix.lng,
+          accuracy:lastGpsFix.accuracy,
+          source:'warm'
+        });
+        return;
+      }
+    }
+
+    // 無可用預熱定位時，再要求一次高精度定位。
+    // 最大等待由原本 20 秒縮短為 8 秒，並允許使用 10 秒內定位。
     navigator.geolocation.getCurrentPosition(
-      p=>resolve({
-        lat:p.coords.latitude,
-        lng:p.coords.longitude,
-        accuracy:p.coords.accuracy
-      }),
+      p=>{
+        const fix=
+          rememberGpsFix_(p);
+
+        if(!fix){
+          reject(
+            new Error(
+              'GPS 定位資料無效，請重新操作。'
+            )
+          );
+          return;
+        }
+
+        resolve({
+          lat:fix.lat,
+          lng:fix.lng,
+          accuracy:fix.accuracy,
+          source:'current'
+        });
+      },
       e=>{
         let msg='無法取得 GPS 定位。';
-        if(e.code===1)msg='定位權限被拒絕，請允許網站使用位置資訊。';
-        if(e.code===2)msg='目前無法取得位置資訊。';
-        if(e.code===3)msg='GPS 定位逾時，請重新操作。';
-        reject(new Error(msg));
+
+        if(e.code===1){
+          msg='定位權限被拒絕，請允許網站使用位置資訊。';
+        }
+
+        if(e.code===2){
+          msg='目前無法取得位置資訊，請移到較開放處再試。';
+        }
+
+        if(e.code===3){
+          msg='GPS 定位逾時，請稍移動手機或到較開放處後重新操作。';
+        }
+
+        reject(
+          new Error(
+            msg
+          )
+        );
       },
       {
         enableHighAccuracy:true,
-        timeout:20000,
-        maximumAge:0
+        timeout:8000,
+        maximumAge:10000
       }
     );
   });
@@ -1082,6 +1225,9 @@ function openPatrol(){
   $('cameraControls').classList.add('hidden');
   status('patrolMessage','');
   scannerPausedAfterSuccess=false;
+
+  // 相機啟動同時先取得 GPS，掃到 QR 時通常可直接使用。
+  startGpsWarmup();
   startScanner();
 }
 

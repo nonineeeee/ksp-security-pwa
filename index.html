@@ -9,7 +9,7 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=20261008-specialtime1412">
+  <link rel="stylesheet" href="./styles.css?v=20261008-personalsupport1413">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <title>高雄軟體園區保全勤務簽到系統</title>
 </head>
@@ -20,7 +20,7 @@
     <div class="logo">🛡️</div>
     <div>
       <h1>高雄軟體園區<br>保全勤務定點簽到系統</h1>
-      <p>勤務巡查版｜fresh-v1.14.12</p>
+      <p>勤務巡查版｜fresh-v1.14.14</p>
     </div>
   </header>
 
@@ -42,6 +42,9 @@
     <input id="password" type="password" autocomplete="current-password" placeholder="請輸入密碼">
 
     <button id="loginBtn" class="btn primary">登入系統</button>
+    <div class="mini-note login-remember-note">
+      同一支手機登入成功後 24 小時內可自動登入；手機不會保存明碼密碼。
+    </div>
     <div id="loginMessage"></div>
 
     <div class="admin-divider"><span>管理功能</span></div>
@@ -291,16 +294,38 @@
     </div>
 
     <div class="notice">
-      同班只要一位保全設定，該勤務日同班所有保全同步生效。
-      可設定整班或指定時段巡查不強制；設定後首頁巡查進度會直接標示「不用打卡」及事由。上班簽到與下班簽退仍須每人正常執行。
+      若只有部分人員需支援活動或其他勤務，請使用「指定人員支援」；
+      此設定只套用被勾選的人員，不會讓整班巡查進度變成不用打卡。
+      只有確實影響全班巡查時，才使用「整班巡查不強制」。
     </div>
 
     <div id="specialExemptCurrent" class="special-exempt-current">
-      目前狀態：讀取中…
+      目前設定：讀取中…
     </div>
 
     <label for="specialExemptDate">勤務日期</label>
     <input id="specialExemptDate" type="date">
+
+    <label for="specialExemptScope">適用方式</label>
+    <select id="specialExemptScope">
+      <option value="PERSONAL" selected>指定人員支援（不影響整班巡查進度）</option>
+      <option value="SHIFT">整班巡查不強制（巡查進度顯示不用打卡）</option>
+    </select>
+
+    <div id="specialExemptPeopleWrap" class="special-people-wrap">
+      <div class="special-people-head">
+        <strong>選擇支援人員</strong>
+        <small>可複選，只影響被勾選的人員</small>
+      </div>
+      <div id="specialExemptPeopleList" class="special-people-list">
+        <div class="empty">請先選擇勤務日期。</div>
+      </div>
+    </div>
+
+    <div id="specialExemptShiftWarning" class="special-shift-warning hidden">
+      整班設定會讓指定時段的共同巡查進度直接顯示「不用打卡」。
+      建議僅用於颱風、災害或全班均無法執行巡查的情形。
+    </div>
 
     <label for="specialExemptReason">特殊情形</label>
     <select id="specialExemptReason">
@@ -357,16 +382,12 @@
     ></textarea>
 
     <button id="setSpecialExemptBtn" class="btn special-primary">
-      設定本班巡查不強制
-    </button>
-
-    <button id="cancelSpecialExemptBtn" class="btn outline hidden">
-      取消本班巡查不強制
+      新增特殊勤務設定
     </button>
 
     <div class="mini-note">
-      系統會留下設定人、勤務日期、班別、不強制時段、原因、說明及伺服器設定時間。<br>
-      若特殊情況解除，任一同班保全均可於本頁取消，取消後整班同步恢復一般巡查規則。
+      「指定人員支援」只會在被選人員首頁顯示支援狀態，整班巡查仍須由其他人完成。<br>
+      「整班巡查不強制」才會在巡查進度中以金黃色顯示「不用打卡｜事由」。
     </div>
 
     <div id="specialExemptMessage"></div>
@@ -565,6 +586,6 @@
 </div>
 
 <script src="./config.js"></script>
-<script src="./app.js?v=20261008-specialtime1412"></script>
+<script src="./app.js?v=20261008-dailylogin1414"></script>
 </body>
 </html>

@@ -2,6 +2,8 @@
 let currentPerson=null;
 let currentDuty=null;
 let currentPassword='';
+let currentSessionToken='';
+let currentSessionExpiresAt=0;
 let scanner=null;
 let scanBusy=false;
 let cameraTrack=null;
@@ -30,8 +32,224 @@ let todayDutyState={
 
 const $=id=>document.getElementById(id);
 
+const DAILY_SESSION_KEYS={
+  personId:'ksp_guard_person_id',
+  token:'ksp_guard_session_token',
+  expiresAt:'ksp_guard_session_expires_at'
+};
+
+
+function saveDailySession(
+  personId,
+  token,
+  expiresAt
+){
+  if(
+    !personId ||
+    !token ||
+    !expiresAt
+  ){
+    return;
+  }
+
+  localStorage.setItem(
+    DAILY_SESSION_KEYS.personId,
+    personId
+  );
+
+  localStorage.setItem(
+    DAILY_SESSION_KEYS.token,
+    token
+  );
+
+  localStorage.setItem(
+    DAILY_SESSION_KEYS.expiresAt,
+    String(expiresAt)
+  );
+}
+
+
+function clearDailySession(){
+  localStorage.removeItem(
+    DAILY_SESSION_KEYS.token
+  );
+
+  localStorage.removeItem(
+    DAILY_SESSION_KEYS.expiresAt
+  );
+
+  currentSessionToken='';
+  currentSessionExpiresAt=0;
+}
+
+
+function getSavedDailySession(){
+  const personId=
+    String(
+      localStorage.getItem(
+        DAILY_SESSION_KEYS.personId
+      ) || ''
+    )
+    .trim()
+    .toUpperCase();
+
+  const token=
+    String(
+      localStorage.getItem(
+        DAILY_SESSION_KEYS.token
+      ) || ''
+    ).trim();
+
+  const expiresAt=
+    Number(
+      localStorage.getItem(
+        DAILY_SESSION_KEYS.expiresAt
+      ) || 0
+    );
+
+  if(
+    !personId ||
+    !token ||
+    !expiresAt ||
+    Date.now()>=expiresAt
+  ){
+    return null;
+  }
+
+  return {
+    personId,
+    token,
+    expiresAt
+  };
+}
+
+
+function applyLoginResponse(
+  r,
+  options={}
+){
+  currentPerson=r.person;
+  currentDuty=r.duty||null;
+
+  if(r.sessionToken){
+    currentSessionToken=r.sessionToken;
+    currentSessionExpiresAt=Number(
+      r.sessionExpiresAt||0
+    );
+
+    saveDailySession(
+      currentPerson.personId,
+      currentSessionToken,
+      currentSessionExpiresAt
+    );
+  }
+
+  localStorage.setItem(
+    DAILY_SESSION_KEYS.personId,
+    currentPerson.personId
+  );
+
+  $('personId').value=currentPerson.personId;
+  $('staffLabel').textContent=
+    `${currentPerson.name}｜${currentPerson.personId}`;
+
+  renderDuty(currentDuty);
+
+  const exempt=r.patrolExempt;
+  if(exempt?.exempt){
+    $('patrolExempt').textContent=
+      `目前免巡查：${exempt.reason}`;
+    $('patrolExempt').classList.remove('hidden');
+  }else{
+    $('patrolExempt').classList.add('hidden');
+  }
+
+  $('loginView').classList.add('hidden');
+  $('mainView').classList.remove('hidden');
+
+  status(
+    'mainMessage',
+    options.auto
+      ? '已自動恢復今日登入，正在讀取勤務資料…'
+      : (
+          currentDuty
+            ? `登入成功。伺服器時間：${r.serverTime}`
+            : '登入成功，但目前查無勤務班表。'
+        ),
+    options.auto
+      ? 'info'
+      : (currentDuty?'ok':'warn')
+  );
+}
+
+
+async function tryResumeDailyLogin(){
+  const saved=getSavedDailySession();
+
+  if(!saved){
+    return false;
+  }
+
+  const btn=$('loginBtn');
+  btn.disabled=true;
+  btn.textContent='正在恢復今日登入…';
+
+  try{
+    const r=await apiCall(
+      'resumeLogin',
+      {
+        personId:saved.personId,
+        sessionToken:saved.token
+      }
+    );
+
+    currentPassword='';
+    currentSessionToken=saved.token;
+    currentSessionExpiresAt=saved.expiresAt;
+
+    applyLoginResponse(
+      r,
+      {auto:true}
+    );
+
+    await refreshDutyDashboard();
+
+    status(
+      'mainMessage',
+      '今日已登入，可直接使用。',
+      'ok'
+    );
+
+    return true;
+
+  }catch(e){
+    const message=String(e.message||'');
+
+    if(
+      /登入憑證|逾期|帳號目前未啟用|人員資料/.test(message)
+    ){
+      clearDailySession();
+    }
+
+    status(
+      'loginMessage',
+      /API|連線|逾時/.test(message)
+        ? '暫時無法恢復登入，請確認網路後重新開啟。'
+        : '今日登入已失效，請重新輸入密碼。',
+      'warn'
+    );
+
+    return false;
+
+  }finally{
+    btn.disabled=false;
+    btn.textContent='登入系統';
+  }
+}
+
+
 document.addEventListener('DOMContentLoaded',()=>{
-  const saved=localStorage.getItem('ksp_guard_person_id');
+  const saved=localStorage.getItem(DAILY_SESSION_KEYS.personId);
   if(saved)$('personId').value=saved;
 
   $('loginBtn').addEventListener('click',login);
@@ -102,15 +320,17 @@ document.querySelectorAll('.manual-qr-chip').forEach(btn=>{
   $('specialExemptBtn').addEventListener('click',openSpecialExempt);
   $('specialExemptBackBtn').addEventListener('click',()=>showView('mainView'));
   $('specialExemptDate').addEventListener('change',loadSpecialExemptStatus);
+  $('specialExemptScope').addEventListener('change',updateSpecialExemptScopeUi);
   $('specialExemptTimeToggle').addEventListener('click',toggleSpecialExemptTime);
   $('specialExemptFullShiftBtn').addEventListener('click',useFullShiftSpecialExempt);
   $('specialExemptStartTime').addEventListener('change',updateSpecialExemptTimeSummary);
   $('specialExemptEndTime').addEventListener('change',updateSpecialExemptTimeSummary);
   $('setSpecialExemptBtn').addEventListener('click',setSpecialExempt);
-  $('cancelSpecialExemptBtn').addEventListener('click',cancelSpecialExempt);
 $('successCloseBtn').addEventListener('click',hideSuccess);
 
-  checkApi();
+  checkApi().finally(()=>{
+    tryResumeDailyLogin();
+  });
 
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
@@ -282,53 +502,33 @@ async function login(){
   btn.textContent='登入驗證中…';
 
   try{
-    const r=await apiCall('login',{personId,password});
+    const r=await apiCall(
+      'login',
+      {personId,password}
+    );
 
-    currentPerson=r.person;
-    currentDuty=r.duty||null;
     currentPassword=password;
+    currentSessionToken=r.sessionToken||'';
+    currentSessionExpiresAt=Number(r.sessionExpiresAt||0);
 
-    localStorage.setItem('ksp_guard_person_id',personId);
-
-    $('staffLabel').textContent=`${currentPerson.name}｜${currentPerson.personId}`;
-    renderDuty(currentDuty);
-
-    const exempt=r.patrolExempt;
-    if(exempt?.exempt){
-      $('patrolExempt').textContent=`目前免巡查：${exempt.reason}`;
-      $('patrolExempt').classList.remove('hidden');
-    }else{
-      $('patrolExempt').classList.add('hidden');
-    }
-
-    $('loginView').classList.add('hidden');
-    $('mainView').classList.remove('hidden');
-
-    status(
-      'mainMessage',
-      currentDuty
-        ? `登入成功。伺服器時間：${r.serverTime}`
-        : '登入成功，但目前查無勤務班表。',
-      currentDuty?'ok':'warn'
-    );
-
-    status(
-      'mainMessage',
-      '登入成功，正在快速載入巡查進度…',
-      'info'
-    );
+    applyLoginResponse(r);
+    status('loginMessage','');
 
     await refreshDutyDashboard();
 
+    status(
+      'mainMessage',
+      '登入成功；本裝置 24 小時內重新開啟系統將自動登入。',
+      'ok'
+    );
+
   }catch(e){
     status('loginMessage',e.message,'err');
-
   }finally{
     btn.disabled=false;
     btn.textContent='登入系統';
   }
 }
-
 function renderDuty(duty){
   $('todayShift').textContent=
     duty
@@ -357,6 +557,7 @@ function logout(){
   currentPerson=null;
   currentDuty=null;
   currentPassword='';
+  clearDailySession();
   stopScanner();
   $('password').value='';
   ['mainView','patrolView','recordsView','incidentView','substituteView','specialExemptView']
@@ -804,19 +1005,49 @@ function renderDutyDashboard(){
     const special=
       todayDutyState.specialExempt;
 
+    const lines=[];
+
     if(
+      Array.isArray(
+        special?.shiftEntries
+      ) &&
+      special.shiftEntries.length
+    ){
+      special.shiftEntries.forEach(
+        x=>{
+          lines.push(
+            `整班不用打卡：${x.timeLabel||'整班'}｜${x.reason||'特殊情形'}`
+          );
+        }
+      );
+    }else if(
       special?.exempt &&
       special.record
     ){
-      const timeLabel=
-        special.record.timeLabel||
-        '整班';
+      lines.push(
+        `整班不用打卡：${special.record.timeLabel||'整班'}｜${special.record.reason||'特殊情形'}`
+      );
+    }
 
-      const note=
-        special.record.note
-          ? `｜${special.record.note}`
-          : '';
+    const personal=
+      special?.personalSupport;
 
+    if(
+      Array.isArray(
+        personal?.entries
+      ) &&
+      personal.entries.length
+    ){
+      personal.entries.forEach(
+        x=>{
+          lines.push(
+            `個人支援：${x.timeLabel||'整班'}｜${x.reason||'勤務支援'}｜本時段不需參與巡查`
+          );
+        }
+      );
+    }
+
+    if(lines.length){
       specialBanner.className=
         'special-exempt-banner';
 
@@ -824,8 +1055,10 @@ function renderDutyDashboard(){
         'aria-hidden'
       );
 
-      specialBanner.textContent=
-        `不用打卡時段：${timeLabel}｜事由：${special.record.reason||'特殊情形'}${note}`;
+      specialBanner.innerHTML=
+        lines.map(
+          x=>`<div>${esc(x)}</div>`
+        ).join('');
     }else{
       specialBanner.className=
         'hidden';
@@ -1201,6 +1434,20 @@ function applyDutyButtonState(){
 
         patrolSmall.textContent=
           `不用打卡｜${reason}｜仍可巡查`;
+      }else if(
+        s.specialExempt
+          ?.personalSupport
+          ?.activeNow
+      ){
+        const reason=
+          s.specialExempt
+            .personalSupport
+            .current
+            ?.reason||
+          '勤務支援';
+
+        patrolSmall.textContent=
+          `個人支援｜${reason}｜不需參與巡查`;
       }else{
         patrolSmall.textContent=
           'QR＋GPS';
@@ -1241,6 +1488,183 @@ function dutyDateToInput(dateText){
     .replaceAll('/','-');
 }
 
+
+
+
+function updateSpecialExemptScopeUi(){
+  const scope=
+    $('specialExemptScope').value;
+
+  const peopleWrap=
+    $('specialExemptPeopleWrap');
+
+  const warning=
+    $('specialExemptShiftWarning');
+
+  const btn=
+    $('setSpecialExemptBtn');
+
+  if(scope==='SHIFT'){
+    peopleWrap.classList.add('hidden');
+    warning.classList.remove('hidden');
+
+    if(btn){
+      btn.textContent=
+        '設定整班巡查不強制';
+    }
+  }else{
+    peopleWrap.classList.remove('hidden');
+    warning.classList.add('hidden');
+
+    if(btn){
+      btn.textContent=
+        '設定指定人員支援';
+    }
+  }
+}
+
+
+function renderSpecialExemptPeople(
+  roster
+){
+  const box=
+    $('specialExemptPeopleList');
+
+  if(
+    !box ||
+    !Array.isArray(roster) ||
+    !roster.length
+  ){
+    box.innerHTML=
+      '<div class="empty">此勤務日查無可選人員。</div>';
+    return;
+  }
+
+  box.innerHTML=
+    roster.map(
+      x=>{
+        const isMe=
+          currentPerson &&
+          x.personId===
+            currentPerson.personId;
+
+        return `
+          <label class="special-person-option">
+            <input
+              type="checkbox"
+              class="special-person-check"
+              value="${esc(x.personId)}"
+              ${isMe?'checked':''}
+            >
+            <span>
+              <strong>${esc(x.name||x.personId)}</strong>
+              <small>${esc(x.personId)}${x.isSubstitute?'｜代班':''}</small>
+            </span>
+          </label>
+        `;
+      }
+    ).join('');
+}
+
+
+function selectedSpecialPersonIds(){
+  return Array.from(
+    document.querySelectorAll(
+      '.special-person-check:checked'
+    )
+  ).map(
+    x =>
+      x.value
+  ).filter(Boolean);
+}
+
+
+function renderSpecialSettings(
+  entries
+){
+  const box=
+    $('specialExemptCurrent');
+
+  if(
+    !Array.isArray(entries) ||
+    !entries.length
+  ){
+    box.classList.remove('active');
+    box.innerHTML=
+      '目前設定：本班沒有啟用中的特殊勤務設定。';
+    return;
+  }
+
+  box.classList.add('active');
+
+  box.innerHTML=
+    entries.map(
+      x=>{
+        const isPersonal=
+          x.scope==='PERSONAL';
+
+        const scopeText=
+          isPersonal
+            ? '指定人員支援'
+            : '整班巡查不強制';
+
+        const targets=
+          isPersonal
+            ? (
+                Array.isArray(
+                  x.targetPersonNames
+                ) &&
+                x.targetPersonNames.length
+                  ? x.targetPersonNames.join('、')
+                  : (
+                      x.targetPersonIds||[]
+                    ).join('、')
+              )
+            : '整班';
+
+        const note=
+          x.note
+            ? `<div class="special-setting-note">${esc(x.note)}</div>`
+            : '';
+
+        return `
+          <div class="special-setting-card ${isPersonal?'personal':'shift'}">
+            <div class="special-setting-top">
+              <span class="special-setting-badge">${scopeText}</span>
+              <button
+                type="button"
+                class="text-btn special-setting-cancel"
+                data-id="${esc(x.exemptionId||'')}"
+              >取消設定</button>
+            </div>
+            <strong>${esc(x.timeLabel||'整班')}｜${esc(x.reason||'特殊情形')}</strong>
+            <div class="special-setting-target">
+              ${isPersonal?'支援人員：':'適用：'}${esc(targets)}
+            </div>
+            ${note}
+            <small>設定：${esc(x.name||'—')}｜${esc(x.createdAt||'—')}</small>
+          </div>
+        `;
+      }
+    ).join('');
+
+  box
+    .querySelectorAll(
+      '.special-setting-cancel'
+    )
+    .forEach(
+      btn=>{
+        btn.addEventListener(
+          'click',
+          ()=>{
+            cancelSpecialExempt(
+              btn.dataset.id
+            );
+          }
+        );
+      }
+    );
+}
 
 
 function setSpecialExemptCustomMode(
@@ -1380,6 +1804,12 @@ function openSpecialExempt(){
   }
 
   status('specialExemptMessage','');
+
+  if(!$('specialExemptScope').value){
+    $('specialExemptScope').value='PERSONAL';
+  }
+
+  updateSpecialExemptScopeUi();
   loadSpecialExemptStatus();
 }
 
@@ -1389,84 +1819,44 @@ async function loadSpecialExemptStatus(){
     return;
   }
 
-  const dutyDate=$('specialExemptDate').value;
+  const dutyDate=
+    $('specialExemptDate').value;
 
   if(!dutyDate){
     $('specialExemptCurrent').textContent=
-      '目前狀態：請先選擇勤務日期';
+      '目前設定：請先選擇勤務日期';
+
+    renderSpecialExemptPeople([]);
     return;
   }
 
   try{
-    const r=await apiCall('specialExemptStatus',{
-      personId:currentPerson.personId,
-      dutyDate:dutyDate
-    });
-
-    if(r.exempt){
-      const note=
-        r.record?.note
-          ? `｜${r.record.note}`
-          : '';
-
-      $('specialExemptCurrent').innerHTML=
-        `<strong>目前已設定巡查不強制</strong><br>`+
-        `${esc(r.shift||r.record?.shift||'')}｜${esc(r.record?.timeLabel||'整班')}<br>`+
-        `<b>${esc(r.record?.reason||'特殊情形')}</b>${esc(note)}<br>`+
-        `<small>設定人：${esc(r.record?.name||'—')}｜設定時間：${esc(r.record?.createdAt||'—')}</small>`;
-
-      $('specialExemptCurrent').classList.add('active');
-      $('cancelSpecialExemptBtn').classList.remove('hidden');
-      $('setSpecialExemptBtn').textContent='更新巡查不強制設定';
-
-      if(r.record?.reason){
-        $('specialExemptReason').value=r.record.reason;
-      }
-
-      $('specialExemptNote').value=
-        r.record?.note||'';
-
-      if(
-        r.record?.startTime &&
-        r.record?.endTime
-      ){
-        $('specialExemptStartTime').value=
-          r.record.startTime;
-
-        $('specialExemptEndTime').value=
-          r.record.endTime;
-
-        setSpecialExemptCustomMode(
-          true
-        );
-      }else{
-        $('specialExemptStartTime').value='';
-        $('specialExemptEndTime').value='';
-
-        setSpecialExemptCustomMode(
-          false
-        );
-      }
-
-    }else{
-      $('specialExemptCurrent').textContent=
-        '目前狀態：本班未設定特殊巡查不強制';
-
-      $('specialExemptCurrent').classList.remove('active');
-      $('cancelSpecialExemptBtn').classList.add('hidden');
-      $('setSpecialExemptBtn').textContent='設定巡查不強制';
-
-      $('specialExemptStartTime').value='';
-      $('specialExemptEndTime').value='';
-
-      setSpecialExemptCustomMode(
-        false
+    const r=
+      await apiCall(
+        'specialExemptStatus',
+        {
+          personId:
+            currentPerson.personId,
+          dutyDate:
+            dutyDate
+        }
       );
-    }
+
+    renderSpecialExemptPeople(
+      r.roster||[]
+    );
+
+    renderSpecialSettings(
+      r.allEntries||[]
+    );
+
+    updateSpecialExemptScopeUi();
 
   }catch(e){
     $('specialExemptCurrent').textContent=
-      '目前狀態：讀取失敗';
+      '目前設定：讀取失敗';
+
+    renderSpecialExemptPeople([]);
 
     status(
       'specialExemptMessage',
@@ -1476,28 +1866,55 @@ async function loadSpecialExemptStatus(){
   }
 }
 
-
 async function setSpecialExempt(){
   if(!currentPerson){
     return;
   }
 
-  const dutyDate=$('specialExemptDate').value;
-  const reason=$('specialExemptReason').value;
-  const note=$('specialExemptNote').value.trim();
+  const dutyDate=
+    $('specialExemptDate').value;
+
+  const scope=
+    $('specialExemptScope').value||
+    'PERSONAL';
+
+  const reason=
+    $('specialExemptReason').value;
+
+  const note=
+    $('specialExemptNote').value.trim();
+
   const startTime=
     specialExemptCustomTime
       ? $('specialExemptStartTime').value
       : '';
+
   const endTime=
     specialExemptCustomTime
       ? $('specialExemptEndTime').value
       : '';
 
+  const targetPersonIds=
+    scope==='PERSONAL'
+      ? selectedSpecialPersonIds()
+      : [];
+
   if(!dutyDate){
     status(
       'specialExemptMessage',
       '請選擇勤務日期。',
+      'warn'
+    );
+    return;
+  }
+
+  if(
+    scope==='PERSONAL' &&
+    !targetPersonIds.length
+  ){
+    status(
+      'specialExemptMessage',
+      '請至少勾選一位支援人員。',
       'warn'
     );
     return;
@@ -1512,7 +1929,10 @@ async function setSpecialExempt(){
     return;
   }
 
-  if(reason==='其他' && !note){
+  if(
+    reason==='其他' &&
+    !note
+  ){
     status(
       'specialExemptMessage',
       '選擇「其他」時請填寫說明。',
@@ -1530,7 +1950,7 @@ async function setSpecialExempt(){
   ){
     status(
       'specialExemptMessage',
-      '請完整設定巡查不強制的開始與結束時間。',
+      '請完整設定開始與結束時間。',
       'warn'
     );
     return;
@@ -1541,38 +1961,93 @@ async function setSpecialExempt(){
       ? `${startTime}–${endTime}`
       : '整班';
 
-  const ok=confirm(
-    `確定設定巡查不強制？\n\n`+
-    `勤務日期：${dutyDate}\n`+
-    `時段：${timeText}\n`+
-    `事由：${reason}\n\n`+
-    '同班同步生效；上班簽到與下班簽退仍須每人正常執行。'
-  );
+  let scopeText='';
 
-  if(!ok){
+  if(scope==='PERSONAL'){
+    const names=
+      targetPersonIds.map(
+        id=>{
+          const el=
+            document.querySelector(
+              `.special-person-check[value="${id}"]`
+            );
+
+          return el
+            ?.closest(
+              '.special-person-option'
+            )
+            ?.querySelector('strong')
+            ?.textContent||
+            id;
+        }
+      );
+
+    scopeText=
+      `指定人員支援：${names.join('、')}`;
+  }else{
+    scopeText=
+      '整班巡查不強制';
+  }
+
+  const warning=
+    scope==='SHIFT'
+      ? '\n\n注意：整班設定會讓共同巡查進度顯示「不用打卡」。'
+      : '\n\n此設定不會改變整班共同巡查進度。';
+
+  if(
+    !confirm(
+      `確定新增設定？\n\n`+
+      `勤務日期：${dutyDate}\n`+
+      `時段：${timeText}\n`+
+      `${scopeText}\n`+
+      `事由：${reason}`+
+      warning
+    )
+  ){
     return;
   }
 
-  const btn=$('setSpecialExemptBtn');
+  const btn=
+    $('setSpecialExemptBtn');
+
   btn.disabled=true;
   btn.textContent='設定中…';
 
   try{
-    const r=await apiCall('specialExemptSet',{
-      personId:currentPerson.personId,
-      password:currentPassword,
-      dutyDate:dutyDate,
-      reason:reason,
-      note:note,
-      startTime:startTime,
-      endTime:endTime
-    });
+    const r=
+      await apiCall(
+        'specialExemptSet',
+        {
+          personId:
+            currentPerson.personId,
+          password:
+            currentPassword,
+          sessionToken:
+            currentSessionToken,
+          dutyDate:
+            dutyDate,
+          scope:
+            scope,
+          targetPersonIds:
+            targetPersonIds,
+          reason:
+            reason,
+          note:
+            note,
+          startTime:
+            startTime,
+          endTime:
+            endTime
+        }
+      );
 
     status(
       'specialExemptMessage',
       r.message,
       'ok'
     );
+
+    $('specialExemptNote').value='';
 
     await loadSpecialExemptStatus();
     await refreshDutyDashboard();
@@ -1586,44 +2061,60 @@ async function setSpecialExempt(){
 
   }finally{
     btn.disabled=false;
-    btn.textContent='設定巡查不強制';
+    updateSpecialExemptScopeUi();
   }
 }
 
-
-async function cancelSpecialExempt(){
+async function cancelSpecialExempt(
+  exemptionId
+){
   if(!currentPerson){
     return;
   }
 
-  const dutyDate=$('specialExemptDate').value;
+  const dutyDate=
+    $('specialExemptDate').value;
 
-  if(!confirm(`確定取消 ${dutyDate} 本班的特殊巡查不強制？\n\n取消後同班所有保全同步恢復一般巡查規則。`)){
+  if(!exemptionId){
+    status(
+      'specialExemptMessage',
+      '找不到要取消的設定。',
+      'warn'
+    );
     return;
   }
 
-  const btn=$('cancelSpecialExemptBtn');
-  btn.disabled=true;
-  btn.textContent='取消中…';
+  if(
+    !confirm(
+      '確定取消這一筆特殊勤務設定？'
+    )
+  ){
+    return;
+  }
 
   try{
-    const r=await apiCall('specialExemptCancel',{
-      personId:currentPerson.personId,
-      password:currentPassword,
-      dutyDate:dutyDate
-    });
+    const r=
+      await apiCall(
+        'specialExemptCancel',
+        {
+          personId:
+            currentPerson.personId,
+          password:
+            currentPassword,
+          sessionToken:
+            currentSessionToken,
+          dutyDate:
+            dutyDate,
+          exemptionId:
+            exemptionId
+        }
+      );
 
     status(
       'specialExemptMessage',
       r.message,
       'ok'
     );
-
-    $('specialExemptReason').value='';
-    $('specialExemptNote').value='';
-    $('specialExemptStartTime').value='';
-    $('specialExemptEndTime').value='';
-    setSpecialExemptCustomMode(false);
 
     await loadSpecialExemptStatus();
     await refreshDutyDashboard();
@@ -1634,13 +2125,8 @@ async function cancelSpecialExempt(){
       e.message,
       'err'
     );
-
-  }finally{
-    btn.disabled=false;
-    btn.textContent='取消本班巡查不強制';
   }
 }
-
 
 function openPatrol(){
   closeScanSuccessPopup();
@@ -2548,6 +3034,8 @@ async function loadSubstituteOptions(){
             currentPerson.personId,
           password:
             currentPassword,
+          sessionToken:
+            currentSessionToken,
           dutyDate:
             dutyDate
         }
@@ -2770,6 +3258,8 @@ async function setSubstitute(){
             currentPerson.personId,
           password:
             currentPassword,
+          sessionToken:
+            currentSessionToken,
           dutyDate:
             dutyDate,
           shift:
@@ -2842,6 +3332,8 @@ async function cancelSubstitute(
             currentPerson.personId,
           password:
             currentPassword,
+          sessionToken:
+            currentSessionToken,
           substitutionId:
             substitutionId
         }

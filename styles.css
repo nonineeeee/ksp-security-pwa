@@ -1878,27 +1878,32 @@ body.popup-open{
 
 
 /* =========================================================
-   fresh-v1.14.12｜特殊巡查不強制：可調整時段
+   fresh-v1.14.12.1｜特殊巡查不強制：統一深藍灰版面
    ========================================================= */
+
+/* 首頁：不用打卡提示，改為與勤務資訊相同的沉穩灰藍色 */
 #specialExemptBanner.special-exempt-banner{
   display:block!important;
   margin-top:10px;
   padding:11px 12px;
-  border:1px solid #d7a444;
+  border:1px solid #bccbd6;
   border-radius:12px;
-  background:#fff6df;
-  color:#775418;
+  background:#eef3f7;
+  color:#31485a;
   font-size:13px;
-  font-weight:850;
+  font-weight:800;
   line-height:1.55;
+  box-shadow:none;
 }
 
+/* 特殊巡查時段設定區：取消米黃／亮色 */
 .special-time-setting{
   margin:12px 0;
   padding:12px;
-  border:1px solid #d7c28d;
+  border:1px solid #c8d3dc;
   border-radius:13px;
-  background:#fffaf0;
+  background:#f4f7f9;
+  box-shadow:none;
 }
 
 .special-time-row{
@@ -1908,17 +1913,30 @@ body.popup-open{
   gap:10px;
 }
 
+.special-time-row .eyebrow{
+  color:#607383;
+}
+
 .special-time-row strong{
   display:block;
   margin-top:3px;
-  color:#6c4e18;
+  color:#233f55;
   font-size:15px;
+  font-weight:850;
+}
+
+.special-time-row .text-btn{
+  color:#2e607b;
+  background:#edf3f6;
+  border:1px solid #c5d2da;
+  border-radius:9px;
+  padding:7px 10px;
 }
 
 .special-time-controls{
   margin-top:12px;
   padding-top:11px;
-  border-top:1px dashed #d8c89c;
+  border-top:1px solid #d5dee5;
 }
 
 .special-time-grid{
@@ -1929,12 +1947,15 @@ body.popup-open{
 
 .special-time-grid label{
   margin:0;
+  color:#536b7a;
 }
 
 .special-time-grid input{
   width:100%;
   box-sizing:border-box;
   margin-top:5px;
+  background:#fff;
+  border-color:#cbd5dc;
 }
 
 .compact-btn{
@@ -1942,9 +1963,31 @@ body.popup-open{
   padding:9px 12px!important;
 }
 
+/* 巡查進度中的特殊時段：不用高亮黃，統一灰藍 */
+.hourly-special{
+  background:#f0f4f7;
+  border-color:#c5d0d8;
+}
+
 .hourly-special .hourly-result{
-  color:#f1b93e;
+  color:#35596f;
   font-weight:900;
+}
+
+.hourly-special .hourly-title,
+.hourly-special .hourly-time{
+  color:#334b5b;
+}
+
+/* 特殊巡查頁目前狀態框也統一 */
+#specialExemptCurrent.active{
+  background:#eef3f7;
+  border-color:#becbd4;
+  color:#31485a;
+}
+
+#specialExemptCurrent.active strong{
+  color:#244b63;
 }
 
 @media(max-width:420px){
@@ -1954,5 +1997,407 @@ body.popup-open{
 
   .special-time-grid{
     grid-template-columns:1fr;
+  }
+}
+
+
+/* =========================================================
+   fresh-v1.14.13｜整班「不用打卡」巡查進度維持金黃色
+   設定頁及個人支援提示仍採低彩度灰藍。
+   ========================================================= */
+
+.hourly-special{
+  background:#fff3c4!important;
+  border:1px solid #e2b94f!important;
+  box-shadow:0 1px 0 rgba(116,82,12,.08);
+}
+
+.hourly-special .hourly-result{
+  color:#8a5b00!important;
+  font-weight:900;
+}
+
+.hourly-special .hourly-title,
+.hourly-special .hourly-time{
+  color:#65490f!important;
+}
+
+.special-people-wrap{
+  margin:12px 0;
+  padding:12px;
+  border:1px solid #c8d3dc;
+  border-radius:13px;
+  background:#f4f7f9;
+}
+
+.special-people-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:9px;
+}
+
+.special-people-head strong{
+  color:#233f55;
+}
+
+.special-people-head small{
+  color:#6c7d89;
+  text-align:right;
+}
+
+.special-people-list{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+
+.special-person-option{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  margin:0;
+  padding:9px 10px;
+  border:1px solid #d1dbe2;
+  border-radius:10px;
+  background:#fff;
+  cursor:pointer;
+}
+
+.special-person-option input{
+  width:auto!important;
+  margin:0;
+}
+
+.special-person-option span{
+  min-width:0;
+}
+
+.special-person-option strong,
+.special-person-option small{
+  display:block;
+}
+
+.special-person-option strong{
+  color:#2a4659;
+}
+
+.special-person-option small{
+  color:#71818d;
+  margin-top:2px;
+}
+
+.special-shift-warning{
+  margin:10px 0 12px;
+  padding:10px 12px;
+  border:1px solid #d2c08e;
+  border-radius:11px;
+  background:#f7f3e8;
+  color:#63583c;
+  font-size:13px;
+  line-height:1.55;
+}
+
+.special-setting-card{
+  margin-top:9px;
+  padding:11px 12px;
+  border:1px solid #c7d3dc;
+  border-radius:11px;
+  background:#f5f8fa;
+  color:#344c5b;
+}
+
+.special-setting-card.shift{
+  border-left:4px solid #d2a632;
+}
+
+.special-setting-card.personal{
+  border-left:4px solid #557c94;
+}
+
+.special-setting-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:9px;
+  margin-bottom:7px;
+}
+
+.special-setting-badge{
+  display:inline-flex;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#e9f0f4;
+  color:#365a70;
+  font-size:12px;
+  font-weight:850;
+}
+
+.special-setting-card.shift .special-setting-badge{
+  background:#f3ead0;
+  color:#755817;
+}
+
+.special-setting-target{
+  margin-top:5px;
+  font-size:13px;
+  color:#5c707d;
+}
+
+.special-setting-note{
+  margin-top:5px;
+  font-size:13px;
+  color:#5c707d;
+}
+
+.special-setting-card small{
+  display:block;
+  margin-top:7px;
+  color:#7a8993;
+}
+
+@media(max-width:420px){
+  .special-people-list{
+    grid-template-columns:1fr;
+  }
+
+  .special-people-head{
+    display:block;
+  }
+
+  .special-people-head small{
+    display:block;
+    margin-top:3px;
+    text-align:left;
+  }
+}
+
+
+/* =========================================================
+   fresh-v1.14.14.1｜巡查不強制時段：設定頁色彩／版面統一
+   原則：
+   1. 設定頁＝灰藍／深藍
+   2. 巡查進度「不用打卡」＝保留亮黃／金黃色
+   ========================================================= */
+
+/* 目前設定區 */
+#specialExemptCurrent{
+  margin:12px 0;
+  padding:12px;
+  border:1px solid #c7d3dc;
+  border-radius:12px;
+  background:#f4f7f9;
+  color:#344d5d;
+  line-height:1.55;
+}
+
+#specialExemptCurrent.active{
+  background:#f4f7f9!important;
+  border-color:#c7d3dc!important;
+  color:#344d5d!important;
+}
+
+#specialExemptCurrent.active strong{
+  color:#233f55!important;
+}
+
+/* 指定人員支援 */
+.special-people-wrap{
+  margin:12px 0;
+  padding:12px;
+  border:1px solid #c7d3dc!important;
+  border-radius:12px;
+  background:#f4f7f9!important;
+  box-shadow:none!important;
+}
+
+.special-people-head{
+  margin-bottom:10px;
+}
+
+.special-people-head strong{
+  color:#233f55!important;
+  font-size:14px;
+}
+
+.special-people-head small{
+  color:#6d7f8c!important;
+}
+
+.special-person-option{
+  min-height:48px;
+  border:1px solid #d2dce3!important;
+  border-radius:10px;
+  background:#ffffff!important;
+  color:#314958;
+}
+
+.special-person-option:has(input:checked){
+  border-color:#7794a7!important;
+  background:#edf3f6!important;
+}
+
+.special-person-option strong{
+  color:#29485c!important;
+}
+
+.special-person-option small{
+  color:#71818c!important;
+}
+
+/* 整班提示：同樣用灰藍，不用米黃色 */
+.special-shift-warning{
+  margin:12px 0;
+  padding:11px 12px;
+  border:1px solid #c8d3dc!important;
+  border-radius:12px;
+  background:#eef3f6!important;
+  color:#425c6d!important;
+  font-size:13px;
+  line-height:1.55;
+}
+
+/* 巡查不強制時段主卡 */
+.special-time-setting{
+  margin:12px 0;
+  padding:12px;
+  border:1px solid #c7d3dc!important;
+  border-radius:12px;
+  background:#f4f7f9!important;
+  box-shadow:none!important;
+}
+
+.special-time-row{
+  min-height:42px;
+  align-items:center;
+}
+
+.special-time-row .eyebrow{
+  color:#687b89!important;
+  font-size:12px;
+}
+
+.special-time-row strong{
+  margin-top:3px;
+  color:#233f55!important;
+  font-size:15px;
+  font-weight:850;
+}
+
+.special-time-row .text-btn{
+  flex:0 0 auto;
+  min-width:88px;
+  padding:8px 11px!important;
+  border:1px solid #c2cfd8!important;
+  border-radius:9px!important;
+  background:#eaf1f5!important;
+  color:#315b72!important;
+  font-weight:800;
+}
+
+/* 展開後時段區 */
+.special-time-controls{
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px solid #d5dee5!important;
+}
+
+.special-time-grid{
+  gap:10px;
+}
+
+.special-time-grid label{
+  color:#526b7a!important;
+  font-size:13px;
+  font-weight:700;
+}
+
+.special-time-grid input{
+  height:44px;
+  margin-top:6px;
+  padding:8px 10px;
+  border:1px solid #c8d4dc!important;
+  border-radius:9px;
+  background:#fff!important;
+  color:#263f50;
+}
+
+/* 「恢復整班不用打卡」也跟一般 outline button 一致 */
+#specialExemptFullShiftBtn{
+  margin-top:10px!important;
+  border:1px solid #bdccd6!important;
+  background:#edf3f6!important;
+  color:#315b72!important;
+  box-shadow:none!important;
+}
+
+/* 已建立設定卡 */
+.special-setting-card{
+  margin-top:9px;
+  padding:11px 12px;
+  border:1px solid #c7d3dc!important;
+  border-radius:11px;
+  background:#f7f9fb!important;
+  color:#344d5d!important;
+  box-shadow:none!important;
+}
+
+/* 個人／整班只用左側細線區分，不大面積換色 */
+.special-setting-card.personal{
+  border-left:4px solid #5f8197!important;
+}
+
+.special-setting-card.shift{
+  border-left:4px solid #8a9dab!important;
+}
+
+.special-setting-badge,
+.special-setting-card.shift .special-setting-badge{
+  background:#e9f0f4!important;
+  color:#365a70!important;
+  border:none!important;
+}
+
+.special-setting-target,
+.special-setting-note,
+.special-setting-card small{
+  color:#6b7d89!important;
+}
+
+/* =========================================================
+   巡查進度：保留辨識度高的黃／金色
+   ========================================================= */
+.hourly-special{
+  background:#fff3c4!important;
+  border:1px solid #e2b94f!important;
+  box-shadow:0 1px 0 rgba(116,82,12,.08)!important;
+}
+
+.hourly-special .hourly-result{
+  color:#8a5b00!important;
+  font-weight:900!important;
+}
+
+.hourly-special .hourly-title,
+.hourly-special .hourly-time{
+  color:#65490f!important;
+}
+
+@media(max-width:420px){
+  .special-time-row{
+    align-items:center!important;
+  }
+
+  .special-time-row .text-btn{
+    min-width:82px;
+  }
+
+  .special-time-grid{
+    grid-template-columns:1fr!important;
+  }
+
+  .special-people-list{
+    grid-template-columns:1fr!important;
   }
 }

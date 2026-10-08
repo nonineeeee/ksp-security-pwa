@@ -9,7 +9,7 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=20261002-rostersub149">
+  <link rel="stylesheet" href="./styles.css?v=20261008-specialtime1412">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <title>高雄軟體園區保全勤務簽到系統</title>
 </head>
@@ -20,7 +20,7 @@
     <div class="logo">🛡️</div>
     <div>
       <h1>高雄軟體園區<br>保全勤務定點簽到系統</h1>
-      <p>班表巡查版｜fresh-v1.14.10</p>
+      <p>勤務巡查版｜fresh-v1.14.12</p>
     </div>
   </header>
 
@@ -86,8 +86,8 @@
       <div class="info-grid">
         <div class="info-item"><span>班別</span><strong id="todayShift">—</strong></div>
         <div class="info-item"><span>勤務日期</span><strong id="dutyDate">—</strong></div>
-        <div class="info-item"><span>勤務開始</span><strong id="dutyStart">—</strong></div>
-        <div class="info-item"><span>勤務結束</span><strong id="dutyEnd">—</strong></div>
+        <div class="info-item"><span>上班</span><strong id="dutyStart">—</strong></div>
+        <div class="info-item"><span>下班</span><strong id="dutyEnd">—</strong></div>
       </div>
 
       <div id="substituteDutyNotice" class="mini-note hidden"></div>
@@ -134,6 +134,10 @@
     </section>
 
     <section class="actions">
+      <button id="clockInBtn" class="tile">
+        <span>🟢</span><b>上班簽到</b><small>GPS 350 公尺</small>
+      </button>
+
       <button id="patrolBtn" class="tile">
         <span>📷</span><b>定點巡查</b><small>QR＋GPS</small>
       </button>
@@ -150,8 +154,12 @@
         <span>🔄</span><b>代班設定</b><small>請假／臨時代班</small>
       </button>
 
-      <button id="specialExemptBtn" class="tile wide special-exempt-tile">
+      <button id="specialExemptBtn" class="tile">
         <span>🌧️</span><b>特殊巡查不強制</b><small>颱風／風雨／活動支援</small>
+      </button>
+
+      <button id="clockOutBtn" class="tile wide checkout-tile">
+        <span>🔴</span><b>下班簽退</b><small>GPS 簽退</small>
       </button>
     </section>
   </section>
@@ -284,7 +292,7 @@
 
     <div class="notice">
       同班只要一位保全設定，該勤務日同班所有保全同步生效。
-      設定後，每小時共同巡查改為不強制；如現場狀況允許，仍可照常掃 QR 巡查。勤務身分由班表與代班設定判定。
+      可設定整班或指定時段巡查不強制；設定後首頁巡查進度會直接標示「不用打卡」及事由。上班簽到與下班簽退仍須每人正常執行。
     </div>
 
     <div id="specialExemptCurrent" class="special-exempt-current">
@@ -305,6 +313,41 @@
       <option value="其他">其他</option>
     </select>
 
+    <div class="special-time-setting">
+      <div class="special-time-row">
+        <div>
+          <span class="eyebrow">巡查不強制時段</span>
+          <strong id="specialExemptTimeSummary">整班</strong>
+        </div>
+        <button id="specialExemptTimeToggle" class="text-btn" type="button">
+          調整時段
+        </button>
+      </div>
+
+      <div id="specialExemptTimeControls" class="special-time-controls hidden">
+        <div class="special-time-grid">
+          <label>
+            開始時間
+            <input id="specialExemptStartTime" type="time" step="60">
+          </label>
+
+          <label>
+            結束時間
+            <input id="specialExemptEndTime" type="time" step="60">
+          </label>
+        </div>
+
+        <button id="specialExemptFullShiftBtn" class="btn outline compact-btn" type="button">
+          恢復整班不用打卡
+        </button>
+
+        <div class="mini-note">
+          指定時段只影響該時段的定點巡查；上下班簽到／簽退仍須正常執行。
+          若時段跨午夜，例如晚班 22:00–02:00，可直接設定。
+        </div>
+      </div>
+    </div>
+
     <label for="specialExemptNote">補充說明</label>
     <textarea
       id="specialExemptNote"
@@ -322,7 +365,7 @@
     </button>
 
     <div class="mini-note">
-      系統會留下設定人、勤務日期、班別、原因、說明及伺服器設定時間。<br>
+      系統會留下設定人、勤務日期、班別、不強制時段、原因、說明及伺服器設定時間。<br>
       若特殊情況解除，任一同班保全均可於本頁取消，取消後整班同步恢復一般巡查規則。
     </div>
 
@@ -522,6 +565,6 @@
 </div>
 
 <script src="./config.js"></script>
-<script src="./app.js?v=20261008-fastdashboard1410"></script>
+<script src="./app.js?v=20261008-specialtime1412"></script>
 </body>
 </html>

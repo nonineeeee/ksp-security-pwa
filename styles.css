@@ -1021,7 +1021,7 @@ body.popup-open{
    1) 成功視窗在小螢幕固定可看到「繼續巡查下一個點」
    2) 簽到首頁不展示特殊情況巡查不強制的獨立狀態區
 */
-#specialExemptBanner{
+#specialExemptBanner.hidden{
   display:none!important;
 }
 
@@ -1862,5 +1862,97 @@ body.popup-open{
 
   .substitute-arrow-row strong{
     text-align:center;
+  }
+}
+
+
+/* fresh-v1.14.11｜恢復上下班簽到／簽退 */
+#clockInBtn b,
+#clockOutBtn b{
+  letter-spacing:.01em;
+}
+
+#clockOutBtn{
+  border-color:#d9a6a6;
+}
+
+
+/* =========================================================
+   fresh-v1.14.12｜特殊巡查不強制：可調整時段
+   ========================================================= */
+#specialExemptBanner.special-exempt-banner{
+  display:block!important;
+  margin-top:10px;
+  padding:11px 12px;
+  border:1px solid #d7a444;
+  border-radius:12px;
+  background:#fff6df;
+  color:#775418;
+  font-size:13px;
+  font-weight:850;
+  line-height:1.55;
+}
+
+.special-time-setting{
+  margin:12px 0;
+  padding:12px;
+  border:1px solid #d7c28d;
+  border-radius:13px;
+  background:#fffaf0;
+}
+
+.special-time-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.special-time-row strong{
+  display:block;
+  margin-top:3px;
+  color:#6c4e18;
+  font-size:15px;
+}
+
+.special-time-controls{
+  margin-top:12px;
+  padding-top:11px;
+  border-top:1px dashed #d8c89c;
+}
+
+.special-time-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px;
+}
+
+.special-time-grid label{
+  margin:0;
+}
+
+.special-time-grid input{
+  width:100%;
+  box-sizing:border-box;
+  margin-top:5px;
+}
+
+.compact-btn{
+  margin-top:10px!important;
+  padding:9px 12px!important;
+}
+
+.hourly-special .hourly-result{
+  color:#f1b93e;
+  font-weight:900;
+}
+
+@media(max-width:420px){
+  .special-time-row{
+    align-items:flex-start;
+  }
+
+  .special-time-grid{
+    grid-template-columns:1fr;
   }
 }

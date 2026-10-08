@@ -9,6 +9,7 @@ let cameraCapabilities=null;
 let currentZoom=1;
 let torchOn=false;
 let scannerPausedAfterSuccess=false;
+let specialExemptCustomTime=false;
 
 // GPS 快速驗證：進入巡查頁時先背景預熱定位。
 let gpsWarmWatchId=null;
@@ -17,6 +18,8 @@ const GPS_WARM_MAX_AGE_MS=15000;
 const GPS_WARM_GOOD_ACCURACY_M=60;
 let todayDutyState={
   hasDuty:false,
+  clockedIn:false,
+  clockedOut:false,
   patrolCount:0,
   patrolProgress:null,
   specialExempt:null,
@@ -33,6 +36,15 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   $('loginBtn').addEventListener('click',login);
   $('logoutBtn').addEventListener('click',logout);
+  $('clockInBtn').addEventListener('click',()=>{
+    if($('clockInBtn').disabled)return;
+    doClock('clockIn');
+  });
+
+  $('clockOutBtn').addEventListener('click',()=>{
+    if($('clockOutBtn').disabled)return;
+    doClock('clockOut');
+  });
 $('patrolBtn').addEventListener('click',()=>{
     if($('patrolBtn').disabled)return;
     openPatrol();
@@ -90,6 +102,10 @@ document.querySelectorAll('.manual-qr-chip').forEach(btn=>{
   $('specialExemptBtn').addEventListener('click',openSpecialExempt);
   $('specialExemptBackBtn').addEventListener('click',()=>showView('mainView'));
   $('specialExemptDate').addEventListener('change',loadSpecialExemptStatus);
+  $('specialExemptTimeToggle').addEventListener('click',toggleSpecialExemptTime);
+  $('specialExemptFullShiftBtn').addEventListener('click',useFullShiftSpecialExempt);
+  $('specialExemptStartTime').addEventListener('change',updateSpecialExemptTimeSummary);
+  $('specialExemptEndTime').addEventListener('change',updateSpecialExemptTimeSummary);
   $('setSpecialExemptBtn').addEventListener('click',setSpecialExempt);
   $('cancelSpecialExemptBtn').addEventListener('click',cancelSpecialExempt);
 $('successCloseBtn').addEventListener('click',hideSuccess);
@@ -514,6 +530,84 @@ function getGps(){
   });
 }
 
+async function doClock(action){
+  if(!currentPerson){
+    return;
+  }
+
+  const isOut=
+    action==='clockOut';
+
+  const title=
+    isOut
+      ? '下班簽退'
+      : '上班簽到';
+
+  if(
+    isOut &&
+    !confirm(
+      '確認本班勤務已完成，現在進行下班簽退？'
+    )
+  ){
+    return;
+  }
+
+  status(
+    'mainMessage',
+    `正在取得 GPS，準備${title}…`,
+    'info'
+  );
+
+  try{
+    const gps=
+      await getGps();
+
+    const r=
+      await apiCall(
+        action,
+        {
+          personId:
+            currentPerson.personId,
+          lat:
+            gps.lat,
+          lng:
+            gps.lng
+        }
+      );
+
+    currentDuty=
+      r.duty||
+      currentDuty;
+
+    renderDuty(
+      currentDuty
+    );
+
+    showSuccess(
+      title+'完成',
+      `${r.message}\n`+
+      `時間：${r.serverTime}\n`+
+      `GPS距離：約 ${r.distance} 公尺`
+    );
+
+    status(
+      'mainMessage',
+      r.message,
+      'ok'
+    );
+
+    await refreshDutyDashboard();
+
+  }catch(e){
+    status(
+      'mainMessage',
+      e.message,
+      'err'
+    );
+  }
+}
+
+
 async function refreshDutyDashboard(){
   if(!currentPerson){
     return;
@@ -543,6 +637,22 @@ async function refreshDutyDashboard(){
         ? result.records
         : [];
 
+    const clockInRecord=
+      records.find(
+        x=>
+          String(
+            x.action||''
+          )==='上班簽到'
+      ) || null;
+
+    const clockOutRecord=
+      records.find(
+        x=>
+          String(
+            x.action||''
+          )==='下班簽退'
+      ) || null;
+
     const patrolRecords=
       records.filter(
         x=>{
@@ -568,6 +678,10 @@ async function refreshDutyDashboard(){
     todayDutyState={
       hasDuty:
         !!currentDuty,
+      clockedIn:
+        !!clockInRecord,
+      clockedOut:
+        !!clockOutRecord,
       patrolCount:
         patrolRecords.length,
       patrolProgress:
@@ -587,6 +701,8 @@ async function refreshDutyDashboard(){
     todayDutyState={
       hasDuty:
         !!currentDuty,
+      clockedIn:false,
+      clockedOut:false,
       patrolCount:0,
       patrolProgress:null,
       specialExempt:null,
@@ -624,19 +740,47 @@ function renderDutyDashboard(){
   let stateIcon='○';
   let stateText='目前無有效排班';
 
-  if(todayDutyState.hasDuty){
-    stateClass='state-active';
-    stateIcon='✓';
+  const prefix=
+    currentDuty?.isSubstitute
+      ? '代班｜'
+      : '';
 
-    if(currentDuty?.isSubstitute){
-      stateText=
-        `代班勤務｜${currentDuty.shift||''}`;
-    }else{
-      stateText=
-        `依班表勤務｜${currentDuty?.shift||''}`;
-    }
+  if(
+    todayDutyState.hasDuty &&
+    !todayDutyState.clockedIn
+  ){
+    stateClass='state-wait';
+    stateIcon='●';
+    stateText=
+      prefix+
+      '尚未上班簽到';
   }
 
+  if(
+    todayDutyState.hasDuty &&
+    todayDutyState.clockedIn &&
+    !todayDutyState.clockedOut
+  ){
+    stateClass='state-active';
+    stateIcon='✓';
+    stateText=
+      prefix+
+      '已上班｜勤務中';
+  }
+
+  if(
+    todayDutyState.hasDuty &&
+    todayDutyState.clockedOut
+  ){
+    stateClass='state-done';
+    stateIcon='✓';
+    stateText=
+      prefix+
+      '已簽退｜勤務完成';
+  }
+
+  // 特殊情況只影響巡查是否強制，
+  // 不取代個人的上下班簽到／簽退狀態。
   panel.classList.add(
     stateClass
   );
@@ -655,9 +799,44 @@ function renderDutyDashboard(){
       : `巡查紀錄 ${todayDutyState.patrolCount} 筆`;
 
   const specialBanner=$('specialExemptBanner');
+
   if(specialBanner){
-    specialBanner.classList.add('hidden');
-    specialBanner.textContent='';
+    const special=
+      todayDutyState.specialExempt;
+
+    if(
+      special?.exempt &&
+      special.record
+    ){
+      const timeLabel=
+        special.record.timeLabel||
+        '整班';
+
+      const note=
+        special.record.note
+          ? `｜${special.record.note}`
+          : '';
+
+      specialBanner.className=
+        'special-exempt-banner';
+
+      specialBanner.removeAttribute(
+        'aria-hidden'
+      );
+
+      specialBanner.textContent=
+        `不用打卡時段：${timeLabel}｜事由：${special.record.reason||'特殊情形'}${note}`;
+    }else{
+      specialBanner.className=
+        'hidden';
+
+      specialBanner.setAttribute(
+        'aria-hidden',
+        'true'
+      );
+
+      specialBanner.textContent='';
+    }
   }
 
   lastChip.textContent=
@@ -753,18 +932,8 @@ function renderHourlyPatrolProgress(){
     return;
   }
 
-  if(progress.specialExempt?.exempt){
-    const optionalDone=
-      Number(progress.optionalCompletedChecks||0);
-
-    count.textContent=
-      `已巡 ${optionalDone}`;
-
-    summary.textContent=
-      `巡查不強制｜仍可打卡｜${progress.specialExempt.reason||'特殊情形'}`;
-
-    bar.style.width='100%';
-  }
+  const special=
+    progress.specialExempt;
 
   const requiredChecks=
     Number(
@@ -781,27 +950,17 @@ function renderHourlyPatrolProgress(){
       progress.missedChecks||0
     );
 
-  if(!progress.specialExempt?.exempt){
+  if(
+    special?.exempt &&
+    requiredChecks===0
+  ){
+    count.textContent=
+      '不用打卡';
+
+    bar.style.width='100%';
+  }else{
     count.textContent=
       `${completedChecks} / ${requiredChecks}`;
-  }
-
-  const currentSlot=
-    Array.isArray(progress.slots)
-      ? progress.slots.find(
-          x=>x.status==='current'
-        )
-      : null;
-
-  if(!progress.specialExempt?.exempt){
-    summary.textContent=
-      missedChecks>0
-        ? `已完成 ${completedChecks} 點次｜漏簽 ${missedChecks} 點次`
-        : (
-          currentSlot
-            ? `目前 ${currentSlot.startTime}–${currentSlot.endTime}｜${currentSlot.completedPoints||0}/5`
-            : `已完成 ${completedChecks} / ${requiredChecks} 點次`
-        );
 
     bar.style.width=
       requiredChecks
@@ -811,6 +970,52 @@ function renderHourlyPatrolProgress(){
             100
           )}%`
         : '0%';
+  }
+
+  const currentSlot=
+    Array.isArray(progress.slots)
+      ? progress.slots.find(
+          x=>x.status==='current'
+        )
+      : null;
+
+  const currentSpecialSlot=
+    Array.isArray(progress.slots)
+      ? progress.slots.find(
+          x=>
+            x.status==='special' &&
+            (
+              x.startDate===
+                new Date().toLocaleDateString('zh-TW',{
+                  timeZone:'Asia/Taipei',
+                  year:'numeric',
+                  month:'2-digit',
+                  day:'2-digit'
+                }).replaceAll('-','/') ||
+              special?.activeNow
+            )
+        )
+      : null;
+
+  if(
+    special?.activeNow
+  ){
+    summary.textContent=
+      `目前不用打卡｜${special.reason||'特殊情形'}｜${special.timeLabel||''}`;
+  }else if(
+    special?.exempt
+  ){
+    summary.textContent=
+      `不用打卡時段 ${special.timeLabel||''}｜事由：${special.reason||'特殊情形'}`;
+  }else{
+    summary.textContent=
+      missedChecks>0
+        ? `已完成 ${completedChecks} 點次｜漏簽 ${missedChecks} 點次`
+        : (
+          currentSlot
+            ? `目前 ${currentSlot.startTime}–${currentSlot.endTime}｜${currentSlot.completedPoints||0}/5`
+            : `已完成 ${completedChecks} / ${requiredChecks} 點次`
+        );
   }
 
   const slots=
@@ -849,7 +1054,7 @@ function renderHourlyPatrolProgress(){
       if(slot.status==='special'){
         icon='◇';
         headline=
-          `不強制｜已巡 ${slot.completedPoints||0}/5`;
+          `不用打卡｜${esc(slot.specialReason||'特殊情形')}`;
       }
 
       const points=
@@ -858,7 +1063,10 @@ function renderHourlyPatrolProgress(){
           : [];
 
       const pointHtml=
-        slot.status==='exempt'
+        (
+          slot.status==='exempt' ||
+          slot.status==='special'
+        )
           ? ''
           : `
             <div class="hourly-point-grid">
@@ -901,42 +1109,129 @@ function applyDutyButtonState(){
   const s=
     todayDutyState;
 
-  if(!s.hasDuty){
-    setActionButtonState(
-      'patrolBtn',
-      true,
-      '目前沒有有效排班；如為臨時代班，請先完成代班設定。'
-    );
-    return;
-  }
-
-  setActionButtonState(
-    'patrolBtn',
-    false
-  );
-
   const patrolBtn=
     $('patrolBtn');
 
-  const small=
+  const patrolSmall=
     patrolBtn?.querySelector(
       'small'
     );
 
-  if(small){
-    if(
-      s.specialExempt?.exempt
-    ){
-      const reason=
-        s.specialExempt.record?.reason||
-        '特殊情形';
+  // 無有效班表：上下班及巡查皆停用。
+  if(!s.hasDuty){
+    const reason=
+      '目前沒有有效排班；如為臨時代班，請先完成代班設定。';
 
-      small.textContent=
-        `不強制｜仍可巡查｜${reason}`;
-    }else{
-      small.textContent=
-        'QR＋GPS';
+    setActionButtonState(
+      'clockInBtn',
+      true,
+      reason
+    );
+
+    setActionButtonState(
+      'patrolBtn',
+      true,
+      reason
+    );
+
+    setActionButtonState(
+      'clockOutBtn',
+      true,
+      reason
+    );
+
+    return;
+  }
+
+  // 尚未上班簽到：先完成個人簽到。
+  if(!s.clockedIn){
+    setActionButtonState(
+      'clockInBtn',
+      false
+    );
+
+    setActionButtonState(
+      'patrolBtn',
+      true,
+      '請先完成上班簽到'
+    );
+
+    setActionButtonState(
+      'clockOutBtn',
+      true,
+      '請先完成上班簽到'
+    );
+
+    if(patrolSmall){
+      patrolSmall.textContent=
+        '請先上班簽到';
     }
+
+    return;
+  }
+
+  // 已完成上班、尚未簽退。
+  if(
+    s.clockedIn &&
+    !s.clockedOut
+  ){
+    setActionButtonState(
+      'clockInBtn',
+      true,
+      '已完成上班簽到'
+    );
+
+    setActionButtonState(
+      'patrolBtn',
+      false
+    );
+
+    setActionButtonState(
+      'clockOutBtn',
+      false
+    );
+
+    if(patrolSmall){
+      if(
+        s.specialExempt?.activeNow
+      ){
+        const reason=
+          s.specialExempt.record?.reason||
+          '特殊情形';
+
+        patrolSmall.textContent=
+          `不用打卡｜${reason}｜仍可巡查`;
+      }else{
+        patrolSmall.textContent=
+          'QR＋GPS';
+      }
+    }
+
+    return;
+  }
+
+  // 已簽退：本班個人勤務完成。
+  setActionButtonState(
+    'clockInBtn',
+    true,
+    '本班已完成'
+  );
+
+  setActionButtonState(
+    'patrolBtn',
+    true,
+    '本班已完成簽退'
+  );
+
+  setActionButtonState(
+    'clockOutBtn',
+    true,
+    '已完成下班簽退'
+  );
+
+  if(patrolSmall){
+    patrolSmall.textContent=
+      '本班已完成';
   }
 }
 
@@ -944,6 +1239,121 @@ function applyDutyButtonState(){
 function dutyDateToInput(dateText){
   return String(dateText||'')
     .replaceAll('/','-');
+}
+
+
+
+function setSpecialExemptCustomMode(
+  enabled
+){
+  specialExemptCustomTime=
+    !!enabled;
+
+  const controls=
+    $('specialExemptTimeControls');
+
+  const toggle=
+    $('specialExemptTimeToggle');
+
+  if(
+    !controls ||
+    !toggle
+  ){
+    return;
+  }
+
+  controls.classList.toggle(
+    'hidden',
+    !specialExemptCustomTime
+  );
+
+  toggle.textContent=
+    specialExemptCustomTime
+      ? '收合時段'
+      : '調整時段';
+
+  updateSpecialExemptTimeSummary();
+}
+
+
+function toggleSpecialExemptTime(){
+  if(
+    !specialExemptCustomTime
+  ){
+    const start=
+      $('specialExemptStartTime');
+
+    const end=
+      $('specialExemptEndTime');
+
+    if(
+      !start.value &&
+      currentDuty?.startTime
+    ){
+      start.value=
+        currentDuty.startTime;
+    }
+
+    if(
+      !end.value &&
+      currentDuty?.endTime
+    ){
+      end.value=
+        currentDuty.endTime;
+    }
+  }
+
+  setSpecialExemptCustomMode(
+    !specialExemptCustomTime
+  );
+}
+
+
+function useFullShiftSpecialExempt(){
+  specialExemptCustomTime=false;
+
+  $('specialExemptStartTime').value='';
+  $('specialExemptEndTime').value='';
+
+  setSpecialExemptCustomMode(
+    false
+  );
+}
+
+
+function updateSpecialExemptTimeSummary(){
+  const summary=
+    $('specialExemptTimeSummary');
+
+  if(!summary){
+    return;
+  }
+
+  if(!specialExemptCustomTime){
+    const start=
+      currentDuty?.startTime||'';
+
+    const end=
+      currentDuty?.endTime||'';
+
+    summary.textContent=
+      start && end
+        ? `整班 ${start}–${end}`
+        : '整班';
+
+    return;
+  }
+
+  const start=
+    $('specialExemptStartTime').value;
+
+  const end=
+    $('specialExemptEndTime').value;
+
+  summary.textContent=
+    start && end
+      ? `${start}–${end}`
+      : '請設定開始／結束時間';
 }
 
 
@@ -1000,13 +1410,14 @@ async function loadSpecialExemptStatus(){
           : '';
 
       $('specialExemptCurrent').innerHTML=
-        `<strong>目前整班已設定巡查不強制</strong><br>`+
-        `${esc(r.shift||r.record?.shift||'')}｜${esc(r.record?.reason||'特殊情形')}${esc(note)}<br>`+
+        `<strong>目前已設定巡查不強制</strong><br>`+
+        `${esc(r.shift||r.record?.shift||'')}｜${esc(r.record?.timeLabel||'整班')}<br>`+
+        `<b>${esc(r.record?.reason||'特殊情形')}</b>${esc(note)}<br>`+
         `<small>設定人：${esc(r.record?.name||'—')}｜設定時間：${esc(r.record?.createdAt||'—')}</small>`;
 
       $('specialExemptCurrent').classList.add('active');
       $('cancelSpecialExemptBtn').classList.remove('hidden');
-      $('setSpecialExemptBtn').textContent='更新本班巡查不強制設定';
+      $('setSpecialExemptBtn').textContent='更新巡查不強制設定';
 
       if(r.record?.reason){
         $('specialExemptReason').value=r.record.reason;
@@ -1015,13 +1426,42 @@ async function loadSpecialExemptStatus(){
       $('specialExemptNote').value=
         r.record?.note||'';
 
+      if(
+        r.record?.startTime &&
+        r.record?.endTime
+      ){
+        $('specialExemptStartTime').value=
+          r.record.startTime;
+
+        $('specialExemptEndTime').value=
+          r.record.endTime;
+
+        setSpecialExemptCustomMode(
+          true
+        );
+      }else{
+        $('specialExemptStartTime').value='';
+        $('specialExemptEndTime').value='';
+
+        setSpecialExemptCustomMode(
+          false
+        );
+      }
+
     }else{
       $('specialExemptCurrent').textContent=
         '目前狀態：本班未設定特殊巡查不強制';
 
       $('specialExemptCurrent').classList.remove('active');
       $('cancelSpecialExemptBtn').classList.add('hidden');
-      $('setSpecialExemptBtn').textContent='設定本班巡查不強制';
+      $('setSpecialExemptBtn').textContent='設定巡查不強制';
+
+      $('specialExemptStartTime').value='';
+      $('specialExemptEndTime').value='';
+
+      setSpecialExemptCustomMode(
+        false
+      );
     }
 
   }catch(e){
@@ -1045,6 +1485,14 @@ async function setSpecialExempt(){
   const dutyDate=$('specialExemptDate').value;
   const reason=$('specialExemptReason').value;
   const note=$('specialExemptNote').value.trim();
+  const startTime=
+    specialExemptCustomTime
+      ? $('specialExemptStartTime').value
+      : '';
+  const endTime=
+    specialExemptCustomTime
+      ? $('specialExemptEndTime').value
+      : '';
 
   if(!dutyDate){
     status(
@@ -1073,9 +1521,32 @@ async function setSpecialExempt(){
     return;
   }
 
+  if(
+    specialExemptCustomTime &&
+    (
+      !startTime ||
+      !endTime
+    )
+  ){
+    status(
+      'specialExemptMessage',
+      '請完整設定巡查不強制的開始與結束時間。',
+      'warn'
+    );
+    return;
+  }
+
+  const timeText=
+    specialExemptCustomTime
+      ? `${startTime}–${endTime}`
+      : '整班';
+
   const ok=confirm(
-    `確定將 ${dutyDate} 本班設為「${reason}」巡查不強制？\n\n`+
-    '同班只要一人設定，整班同步生效；勤務身分仍依班表與代班設定判定。'
+    `確定設定巡查不強制？\n\n`+
+    `勤務日期：${dutyDate}\n`+
+    `時段：${timeText}\n`+
+    `事由：${reason}\n\n`+
+    '同班同步生效；上班簽到與下班簽退仍須每人正常執行。'
   );
 
   if(!ok){
@@ -1092,7 +1563,9 @@ async function setSpecialExempt(){
       password:currentPassword,
       dutyDate:dutyDate,
       reason:reason,
-      note:note
+      note:note,
+      startTime:startTime,
+      endTime:endTime
     });
 
     status(
@@ -1113,7 +1586,7 @@ async function setSpecialExempt(){
 
   }finally{
     btn.disabled=false;
-    btn.textContent='設定本班巡查不強制';
+    btn.textContent='設定巡查不強制';
   }
 }
 
@@ -1148,6 +1621,9 @@ async function cancelSpecialExempt(){
 
     $('specialExemptReason').value='';
     $('specialExemptNote').value='';
+    $('specialExemptStartTime').value='';
+    $('specialExemptEndTime').value='';
+    setSpecialExemptCustomMode(false);
 
     await loadSpecialExemptStatus();
     await refreshDutyDashboard();

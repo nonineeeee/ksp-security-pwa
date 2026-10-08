@@ -296,6 +296,12 @@ async function login(){
       currentDuty?'ok':'warn'
     );
 
+    status(
+      'mainMessage',
+      '登入成功，正在快速載入巡查進度…',
+      'info'
+    );
+
     await refreshDutyDashboard();
 
   }catch(e){
@@ -514,10 +520,9 @@ async function refreshDutyDashboard(){
   }
 
   try{
-    // 每次更新先重新取得有效勤務，代班設定可立即反映。
-    const dutyResult=
+    const result=
       await apiCall(
-        'duty',
+        'dashboard',
         {
           personId:
             currentPerson.personId
@@ -525,47 +530,17 @@ async function refreshDutyDashboard(){
       );
 
     currentDuty=
-      dutyResult.duty||null;
+      result.duty||null;
 
     renderDuty(
       currentDuty
     );
 
-    const [
-      recordsResult,
-      progressResult,
-      specialResult
-    ]=await Promise.all([
-      apiCall(
-        'dutyRecords',
-        {
-          personId:
-            currentPerson.personId
-        }
-      ),
-      apiCall(
-        'dutyProgress',
-        {
-          personId:
-            currentPerson.personId
-        }
-      ),
-      apiCall(
-        'specialExemptStatus',
-        {
-          personId:
-            currentPerson.personId,
-          dutyDate:
-            currentDuty?.dutyDate||''
-        }
-      )
-    ]);
-
     const records=
       Array.isArray(
-        recordsResult.records
+        result.records
       )
-        ? recordsResult.records
+        ? result.records
         : [];
 
     const patrolRecords=
@@ -596,9 +571,9 @@ async function refreshDutyDashboard(){
       patrolCount:
         patrolRecords.length,
       patrolProgress:
-        progressResult||null,
+        result.progress||null,
       specialExempt:
-        specialResult||null,
+        result.specialExempt||null,
       lastAction:
         latest?.action||'',
       lastTime:

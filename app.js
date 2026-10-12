@@ -839,20 +839,26 @@ async function refreshDutyDashboard(){
         : [];
 
     const clockInRecord=
+      result.clockStatus
+        ?.clockInRecord ||
       records.find(
         x=>
           String(
             x.action||''
           )==='上班簽到'
-      ) || null;
+      ) ||
+      null;
 
     const clockOutRecord=
+      result.clockStatus
+        ?.clockOutRecord ||
       records.find(
         x=>
           String(
             x.action||''
           )==='下班簽退'
-      ) || null;
+      ) ||
+      null;
 
     const patrolRecords=
       records.filter(
@@ -880,9 +886,13 @@ async function refreshDutyDashboard(){
       hasDuty:
         !!currentDuty,
       clockedIn:
-        !!clockInRecord,
+        typeof result.clockStatus?.clockedIn==='boolean'
+          ? result.clockStatus.clockedIn
+          : !!clockInRecord,
       clockedOut:
-        !!clockOutRecord,
+        typeof result.clockStatus?.clockedOut==='boolean'
+          ? result.clockStatus.clockedOut
+          : !!clockOutRecord,
       patrolCount:
         patrolRecords.length,
       patrolProgress:
@@ -897,6 +907,18 @@ async function refreshDutyDashboard(){
 
     renderDutyDashboard();
     renderHourlyPatrolProgress();
+
+    if(
+      Array.isArray(
+        result.warnings
+      ) &&
+      result.warnings.length
+    ){
+      console.warn(
+        'Dashboard 部分資料讀取警告：',
+        result.warnings
+      );
+    }
 
   }catch(e){
     todayDutyState={

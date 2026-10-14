@@ -9,7 +9,7 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=20261014-monthlyreport1416">
+  <link rel="stylesheet" href="./styles.css?v=20261014-preloginreport14161">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
   <title>高雄軟體園區保全勤務簽到系統</title>
@@ -21,7 +21,7 @@
     <div class="logo">🛡️</div>
     <div>
       <h1>高雄軟體園區<br>保全勤務定點簽到系統</h1>
-      <p>勤務巡查版｜fresh-v1.14.16</p>
+      <p>勤務巡查版｜fresh-v1.14.16.1</p>
     </div>
   </header>
 
@@ -54,6 +54,11 @@
         📥 匯入班表
         <small>Excel／CSV／PDF</small>
       </a>
+
+      <button id="monthlyReportBtn" class="btn prelogin-report-link" type="button">
+        📊 生成勤務月報表
+        <small>無需登入｜上下班簽到＋巡查點簽到 Excel</small>
+      </button>
 
       <a class="btn gps-admin-link hidden" href="./checkpoint-gps.html">
         📍 巡查點 GPS 定位設定
@@ -162,10 +167,6 @@
         <span>🌧️</span><b>特殊巡查不強制</b><small>颱風／風雨／活動支援</small>
       </button>
 
-      <button id="monthlyReportBtn" class="tile wide report-tile">
-        <span>📊</span><b>生成月報表</b><small>上下班簽到＋巡查點簽到 Excel</small>
-      </button>
-
       <button id="clockOutBtn" class="tile wide checkout-tile">
         <span>🔴</span><b>下班簽退</b><small>GPS 簽退</small>
       </button>
@@ -182,7 +183,7 @@
     </div>
 
     <div class="notice">
-      月報表直接依系統「簽到紀錄」產生，不會修改原始資料。
+      此功能可在登入前直接使用。月報表只讀取核銷所需的勤務資料，不會修改原始資料，也不輸出 GPS 座標。
       巡查點報表會分成白班與晚班，每小時一格，並保留 P01～P05 的實際巡查時間與執行人員。
     </div>
 
@@ -630,6 +631,6 @@
 </div>
 
 <script src="./config.js"></script>
-<script src="./app.js?v=20261014-monthlyreport1416"></script>
+<script src="./app.js?v=20261014-preloginreport14161"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 
-const CACHE_NAME='ksp-security-fresh-pwa-monthly-report-1416';
+const CACHE_NAME='ksp-security-fresh-pwa-prelogin-report-14161';
 
 const STATIC_ASSETS=[
   './manifest.json',

@@ -306,7 +306,7 @@ document.querySelectorAll('.manual-qr-chip').forEach(btn=>{
   $('refreshRecordsBtn').addEventListener('click',loadTodayRecords);
 
   $('monthlyReportBtn').addEventListener('click',openMonthlyReport);
-  $('monthlyReportBackBtn').addEventListener('click',()=>showView('mainView'));
+  $('monthlyReportBackBtn').addEventListener('click',()=>showView(currentPerson?'mainView':'loginView'));
   $('generateClockReportBtn').addEventListener('click',()=>generateMonthlyReport('clock'));
   $('generatePatrolReportBtn').addEventListener('click',()=>generateMonthlyReport('patrol'));
   $('generateFullReportBtn').addEventListener('click',()=>generateMonthlyReport('full'));
@@ -3394,17 +3394,9 @@ function openMonthlyReport(){
   const input=$('reportMonth');
 
   if(!input.value){
-    const base=currentDuty?.dutyDate || '';
-    let y='';
-    let m='';
-
-    if(/^\d{4}\/\d{2}\/\d{2}$/.test(base)){
-      [y,m]=base.split('/');
-    }else{
-      const now=new Date();
-      y=String(now.getFullYear());
-      m=String(now.getMonth()+1).padStart(2,'0');
-    }
+    const now=new Date();
+    const y=String(now.getFullYear());
+    const m=String(now.getMonth()+1).padStart(2,'0');
 
     input.value=`${y}-${m}`;
   }
@@ -3865,11 +3857,6 @@ function reportFilename(data,type){
 
 
 async function generateMonthlyReport(type){
-  if(!currentPerson){
-    status('monthlyReportMessage','請先登入。','warn');
-    return;
-  }
-
   if(typeof XLSX==='undefined'){
     status('monthlyReportMessage','Excel 產生元件載入失敗，請確認網路後重新開啟系統。','err');
     return;
@@ -3894,8 +3881,6 @@ async function generateMonthlyReport(type){
 
   try{
     const data=await apiCall('monthlyReportData',{
-      personId:currentPerson.personId,
-      sessionToken:currentSessionToken,
       year:parts.year,
       month:parts.month
     });

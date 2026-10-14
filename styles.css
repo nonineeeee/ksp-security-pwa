@@ -2585,3 +2585,26 @@ body.popup-open{
     grid-column:auto;
   }
 }
+
+
+/* fresh-v1.14.16.1｜登入前月報表入口 */
+.prelogin-report-link{
+  width:100%;
+  min-height:62px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  border:1px solid #456e88!important;
+  border-radius:14px;
+  background:linear-gradient(145deg,#123a53,#102b41)!important;
+  color:#ffffff!important;
+  font-weight:900;
+  cursor:pointer;
+}
+.prelogin-report-link small{
+  color:#cfe1ec!important;
+  font-size:10px;
+  font-weight:700;
+}

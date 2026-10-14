@@ -305,6 +305,12 @@ document.querySelectorAll('.manual-qr-chip').forEach(btn=>{
   $('recordsBackBtn').addEventListener('click',()=>showView('mainView'));
   $('refreshRecordsBtn').addEventListener('click',loadTodayRecords);
 
+  $('monthlyReportBtn').addEventListener('click',openMonthlyReport);
+  $('monthlyReportBackBtn').addEventListener('click',()=>showView('mainView'));
+  $('generateClockReportBtn').addEventListener('click',()=>generateMonthlyReport('clock'));
+  $('generatePatrolReportBtn').addEventListener('click',()=>generateMonthlyReport('patrol'));
+  $('generateFullReportBtn').addEventListener('click',()=>generateMonthlyReport('full'));
+
   $('substituteBtn').addEventListener('click',openSubstitute);
   $('substituteBackBtn').addEventListener('click',()=>showView('mainView'));
   $('substituteDate').addEventListener('change',loadSubstituteOptions);
@@ -356,6 +362,7 @@ function showView(id){
     'mainView',
     'patrolView',
     'recordsView',
+    'monthlyReportView',
     'incidentView',
     'substituteView',
     'specialExemptView'
@@ -3376,6 +3383,563 @@ async function cancelSubstitute(
       e.message,
       'err'
     );
+  }
+}
+
+
+
+function openMonthlyReport(){
+  showView('monthlyReportView');
+
+  const input=$('reportMonth');
+
+  if(!input.value){
+    const base=currentDuty?.dutyDate || '';
+    let y='';
+    let m='';
+
+    if(/^\d{4}\/\d{2}\/\d{2}$/.test(base)){
+      [y,m]=base.split('/');
+    }else{
+      const now=new Date();
+      y=String(now.getFullYear());
+      m=String(now.getMonth()+1).padStart(2,'0');
+    }
+
+    input.value=`${y}-${m}`;
+  }
+
+  status('monthlyReportMessage','');
+}
+
+
+function reportMonthParts(){
+  const value=String($('reportMonth').value||'').trim();
+  const m=value.match(/^(\d{4})-(\d{2})$/);
+
+  if(!m){
+    throw new Error('請選擇報表月份。');
+  }
+
+  return {
+    year:Number(m[1]),
+    month:Number(m[2])
+  };
+}
+
+
+function reportDateKey(year,month,day){
+  return `${year}/${String(month).padStart(2,'0')}/${String(day).padStart(2,'0')}`;
+}
+
+
+function reportDaysInMonth(year,month){
+  return new Date(year,month,0).getDate();
+}
+
+
+function reportParseDateTime(dateText,timeText){
+  const dm=String(dateText||'').match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
+  const tm=String(timeText||'').match(/^(\d{2}):(\d{2})/);
+  if(!dm || !tm)return null;
+
+  return new Date(
+    Number(dm[1]),
+    Number(dm[2])-1,
+    Number(dm[3]),
+    Number(tm[1]),
+    Number(tm[2]),
+    0,0
+  );
+}
+
+
+function reportWeekdayText(dateText){
+  const d=reportParseDateTime(dateText,'00:00');
+  if(!d)return '';
+  return ['日','一','二','三','四','五','六'][d.getDay()];
+}
+
+
+function reportIsHoliday(dateText,holidaySet){
+  const d=reportParseDateTime(dateText,'00:00');
+  if(!d)return false;
+  return d.getDay()===0 || d.getDay()===6 || holidaySet.has(dateText);
+}
+
+
+function reportFixedExempt(dateText,shift,hour,holidaySet){
+  const holiday=reportIsHoliday(dateText,holidaySet);
+
+  if(shift==='白班'){
+    if(holiday){
+      return hour===12 ? '午休' : '';
+    }
+
+    if(hour===8)return '交管';
+    if(hour===11 || hour===12)return '導護';
+    if(hour===17)return '交管';
+    return '';
+  }
+
+  if(!holiday && hour===18)return '交管';
+  return '';
+}
+
+
+function reportAliasMap(records){
+  const names={};
+  records.forEach(r=>{
+    const id=String(r.personId||'').trim();
+    const name=String(r.name||'').trim();
+    if(id && name)names[id]=name;
+  });
+
+  const ids=Object.keys(names).sort();
+  const tailCount={};
+
+  ids.forEach(id=>{
+    const name=names[id];
+    const tail=name.slice(-1) || id;
+    tailCount[tail]=(tailCount[tail]||0)+1;
+  });
+
+  const aliases={};
+  ids.forEach(id=>{
+    const name=names[id];
+    const tail=name.slice(-1) || id;
+    aliases[id]=tailCount[tail]===1 ? tail : (name.slice(-2)||id);
+  });
+
+  return {names,ids,aliases};
+}
+
+
+function reportSpecialReason(data,dateText,shift,hour){
+  const items=(data.specialExempt||[]).filter(x=>
+    x.date===dateText && (!x.shift || x.shift===shift)
+  );
+
+  if(!items.length)return '';
+
+  const dutyStart=shift==='白班' ? 6 : 18;
+  const slotStart=new Date(2000,0,1,hour,0,0,0);
+  if(shift==='晚班' && hour<6)slotStart.setDate(2);
+  const slotEnd=new Date(slotStart.getTime()+60*60*1000);
+
+  for(const x of items){
+    if(!x.startTime && !x.endTime){
+      return x.reason || '特殊勤務';
+    }
+
+    if(!x.startTime || !x.endTime)continue;
+
+    const sp=x.startTime.split(':').map(Number);
+    const ep=x.endTime.split(':').map(Number);
+    let s=new Date(2000,0,1,sp[0],sp[1]||0,0,0);
+    let e=new Date(2000,0,1,ep[0],ep[1]||0,0,0);
+
+    if(shift==='晚班'){
+      if(sp[0]<6)s.setDate(2);
+      if(ep[0]<6)e.setDate(2);
+      if(e<=s)e.setDate(e.getDate()+1);
+    }
+
+    if(slotStart<e && slotEnd>s){
+      return x.reason || '特殊勤務';
+    }
+  }
+
+  return '';
+}
+
+
+function reportPatrolGroups(data){
+  const out={};
+
+  (data.records||[]).forEach(r=>{
+    if(r.action!=='定點巡查' && r.action!=='定點巡查指定時間登錄')return;
+
+    const dt=reportParseDateTime(r.date,r.time);
+    if(!dt)return;
+
+    let shift='';
+    let dutyDate='';
+    const h=dt.getHours();
+
+    if(h>=6 && h<18){
+      shift='白班';
+      dutyDate=r.date;
+    }else if(h>=18){
+      shift='晚班';
+      dutyDate=r.date;
+    }else{
+      shift='晚班';
+      const prev=new Date(dt.getFullYear(),dt.getMonth(),dt.getDate()-1);
+      dutyDate=`${prev.getFullYear()}/${String(prev.getMonth()+1).padStart(2,'0')}/${String(prev.getDate()).padStart(2,'0')}`;
+    }
+
+    const key=`${shift}|${dutyDate}|${h}|${r.checkpointId}`;
+    if(!out[key])out[key]=[];
+    out[key].push(r);
+  });
+
+  Object.values(out).forEach(list=>{
+    list.sort((a,b)=>String(a.time).localeCompare(String(b.time)));
+  });
+
+  return out;
+}
+
+
+function reportStyles(){
+  return {
+    title:{
+      font:{bold:true,color:{rgb:'FFFFFF'},sz:14},
+      fill:{fgColor:{rgb:'173A52'}},
+      alignment:{horizontal:'center',vertical:'center'}
+    },
+    note:{
+      font:{color:{rgb:'657A87'},sz:9},
+      fill:{fgColor:{rgb:'F5F8FA'}},
+      alignment:{vertical:'center',wrapText:true}
+    },
+    header:{
+      font:{bold:true,color:{rgb:'173A52'},sz:9},
+      fill:{fgColor:{rgb:'DCE8EF'}},
+      alignment:{horizontal:'center',vertical:'center',wrapText:true},
+      border:{top:{style:'thin',color:{rgb:'B8C7D1'}},bottom:{style:'thin',color:{rgb:'B8C7D1'}},left:{style:'thin',color:{rgb:'B8C7D1'}},right:{style:'thin',color:{rgb:'B8C7D1'}}}
+    },
+    body:{
+      font:{color:{rgb:'263E4D'},sz:8},
+      alignment:{horizontal:'center',vertical:'center',wrapText:true},
+      border:{top:{style:'thin',color:{rgb:'B8C7D1'}},bottom:{style:'thin',color:{rgb:'B8C7D1'}},left:{style:'thin',color:{rgb:'B8C7D1'}},right:{style:'thin',color:{rgb:'B8C7D1'}}}
+    },
+    done:{font:{color:{rgb:'245C38'},sz:7},fill:{fgColor:{rgb:'E2F2E7'}},alignment:{vertical:'top',wrapText:true},border:{top:{style:'thin',color:{rgb:'B8C7D1'}},bottom:{style:'thin',color:{rgb:'B8C7D1'}},left:{style:'thin',color:{rgb:'B8C7D1'}},right:{style:'thin',color:{rgb:'B8C7D1'}}}},
+    missed:{font:{color:{rgb:'9A3131'},sz:7},fill:{fgColor:{rgb:'FCE7E7'}},alignment:{vertical:'top',wrapText:true},border:{top:{style:'thin',color:{rgb:'B8C7D1'}},bottom:{style:'thin',color:{rgb:'B8C7D1'}},left:{style:'thin',color:{rgb:'B8C7D1'}},right:{style:'thin',color:{rgb:'B8C7D1'}}}},
+    exempt:{font:{color:{rgb:'5C6971'},sz:7},fill:{fgColor:{rgb:'ECEFF1'}},alignment:{vertical:'top',wrapText:true},border:{top:{style:'thin',color:{rgb:'B8C7D1'}},bottom:{style:'thin',color:{rgb:'B8C7D1'}},left:{style:'thin',color:{rgb:'B8C7D1'}},right:{style:'thin',color:{rgb:'B8C7D1'}}}},
+    special:{font:{bold:true,color:{rgb:'8A5B00'},sz:7},fill:{fgColor:{rgb:'FFF3C4'}},alignment:{vertical:'top',wrapText:true},border:{top:{style:'thin',color:{rgb:'E2B94F'}},bottom:{style:'thin',color:{rgb:'E2B94F'}},left:{style:'thin',color:{rgb:'E2B94F'}},right:{style:'thin',color:{rgb:'E2B94F'}}}},
+    current:{font:{bold:true,color:{rgb:'315B72'},sz:7},fill:{fgColor:{rgb:'E7F0F6'}},alignment:{vertical:'top',wrapText:true},border:{top:{style:'thin',color:{rgb:'AFC4D2'}},bottom:{style:'thin',color:{rgb:'AFC4D2'}},left:{style:'thin',color:{rgb:'AFC4D2'}},right:{style:'thin',color:{rgb:'AFC4D2'}}}},
+    future:{font:{color:{rgb:'9AA7AF'},sz:7},fill:{fgColor:{rgb:'F8FAFB'}},alignment:{vertical:'top',wrapText:true},border:{top:{style:'thin',color:{rgb:'D6DFE5'}},bottom:{style:'thin',color:{rgb:'D6DFE5'}},left:{style:'thin',color:{rgb:'D6DFE5'}},right:{style:'thin',color:{rgb:'D6DFE5'}}}}
+  };
+}
+
+
+function reportApplyRangeStyle(ws,rangeText,style){
+  const range=XLSX.utils.decode_range(rangeText);
+  for(let r=range.s.r;r<=range.e.r;r++){
+    for(let c=range.s.c;c<=range.e.c;c++){
+      const ref=XLSX.utils.encode_cell({r,c});
+      if(ws[ref])ws[ref].s=style;
+    }
+  }
+}
+
+
+function buildClockReportSheet(data){
+  const {year,month}=data;
+  const aliases=reportAliasMap(data.records||[]);
+  const clockRecords=(data.records||[]).filter(r=>r.action==='上班簽到' || r.action==='下班簽退');
+  const people={};
+
+  clockRecords.forEach(r=>{
+    if(r.personId)people[r.personId]=r.name||r.personId;
+  });
+
+  const ids=Object.keys(people).sort();
+  const days=reportDaysInMonth(year,month);
+  const holidays=new Set((data.holidays||[]).map(x=>x.date));
+  const map={};
+
+  clockRecords.forEach(r=>{
+    const key=`${r.date}|${r.personId}`;
+    if(!map[key])map[key]={in:[],out:[]};
+    if(r.action==='上班簽到')map[key].in.push(r.time);
+    if(r.action==='下班簽退')map[key].out.push(r.time);
+  });
+
+  const aoa=[];
+  aoa.push([`高雄軟體園區保全勤務－上下班簽到月報（民國${year-1911}年${month}月）`]);
+  aoa.push([`資料產生：${data.generatedAt||''}｜同一人同日所有上班／下班時間均保留。`]);
+  aoa.push(['日期','星期',...ids.map(id=>`${id}\n${people[id]}`)]);
+
+  for(let day=1;day<=days;day++){
+    const dateText=reportDateKey(year,month,day);
+    const row=[`${month}/${day}`,reportWeekdayText(dateText)];
+
+    ids.forEach(id=>{
+      const item=map[`${dateText}|${id}`]||{in:[],out:[]};
+      const lines=[];
+      if(item.in.length)lines.push(`上 ${item.in.sort().join('/')}`);
+      if(item.out.length)lines.push(`下 ${item.out.sort().join('/')}`);
+      row.push(lines.join('\n'));
+    });
+
+    aoa.push(row);
+  }
+
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  const lastCol=1+ids.length;
+  const end=XLSX.utils.encode_col(lastCol);
+  ws['!merges']=[
+    {s:{r:0,c:0},e:{r:0,c:lastCol}},
+    {s:{r:1,c:0},e:{r:1,c:lastCol}}
+  ];
+  ws['!cols']=[{wch:9},{wch:6},...ids.map(()=>({wch:18}))];
+  ws['!rows']=[{hpt:24},{hpt:18},{hpt:28},...Array(days).fill({hpt:25})];
+
+  const S=reportStyles();
+  reportApplyRangeStyle(ws,`A1:${end}1`,S.title);
+  reportApplyRangeStyle(ws,`A2:${end}2`,S.note);
+  reportApplyRangeStyle(ws,`A3:${end}3`,S.header);
+  reportApplyRangeStyle(ws,`A4:${end}${3+days}`,S.body);
+
+  for(let day=1;day<=days;day++){
+    const dateText=reportDateKey(year,month,day);
+    if(reportIsHoliday(dateText,holidays)){
+      for(let c=0;c<=lastCol;c++){
+        const ref=XLSX.utils.encode_cell({r:2+day,c});
+        if(ws[ref]){
+          ws[ref].s={...S.body,fill:{fgColor:{rgb:'EEF3F6'}}};
+        }
+      }
+    }
+  }
+
+  return ws;
+}
+
+
+function buildPatrolReportSheet(data,shift){
+  const {year,month}=data;
+  const hours=shift==='白班'
+    ? [6,7,8,9,10,11,12,13,14,15,16,17]
+    : [18,19,20,21,22,23,0,1,2,3,4,5];
+  const hourLabels=hours.map(h=>`${String(h).padStart(2,'0')}–${String((h+1)%24).padStart(2,'0')}`);
+  const days=reportDaysInMonth(year,month);
+  const holidaySet=new Set((data.holidays||[]).map(x=>x.date));
+  const groups=reportPatrolGroups(data);
+  const aliasInfo=reportAliasMap(data.records||[]);
+  const pointIds=['P01','P02','P03','P04','P05'];
+  const generatedParts=String(data.generatedAt||'').split(' ');
+  const reportNow=reportParseDateTime(generatedParts[0]||'',generatedParts[1]||'') || new Date();
+
+  const aoa=[];
+  aoa.push([`高雄軟體園區保全勤務－${shift}巡查點月報（${shift==='白班'?'06:00–18:00':'18:00–次日06:00'}）`]);
+  aoa.push([`每格：完成狀態＋P01～P05實際巡查時間／執行人員。＊＝指定時間登錄；＃＝人工輸入巡查。資料產生：${data.generatedAt||''}`]);
+  aoa.push(['勤務日',...hourLabels]);
+
+  const cellStatus=[];
+
+  for(let day=1;day<=days;day++){
+    const dutyDate=reportDateKey(year,month,day);
+    let dateLabel=`${month}/${day}（${reportWeekdayText(dutyDate)}）`;
+    if(holidaySet.has(dutyDate))dateLabel+='\n特殊假日';
+    else if(reportIsHoliday(dutyDate,holidaySet))dateLabel+='\n假日';
+
+    const row=[dateLabel];
+    const statusRow=['date'];
+
+    hours.forEach(hour=>{
+      const fixed=reportFixedExempt(dutyDate,shift,hour,holidaySet);
+      const special=!fixed ? reportSpecialReason(data,dutyDate,shift,hour) : '';
+      const pointLines=[];
+      let completed=0;
+
+      pointIds.forEach(point=>{
+        const key=`${shift}|${dutyDate}|${hour}|${point}`;
+        const recs=groups[key]||[];
+        if(!recs.length)return;
+        completed++;
+
+        const items=recs.map(r=>{
+          let mark='';
+          if(r.action==='定點巡查指定時間登錄')mark='*';
+          else if(String(r.result||'').includes('人工輸入'))mark='#';
+          const alias=aliasInfo.aliases[r.personId]||r.personId||'';
+          return `${r.time}${alias}${mark}`;
+        });
+
+        pointLines.push(`${point.slice(-2)} ${items.join('/')}`);
+      });
+
+      const lines=[];
+      let st='';
+
+      const dutyBase=reportParseDateTime(dutyDate,'00:00');
+      let slotStart=null;
+      if(dutyBase){
+        slotStart=new Date(dutyBase.getTime());
+        if(shift==='晚班' && hour<6){
+          slotStart.setDate(slotStart.getDate()+1);
+        }
+        slotStart.setHours(hour,0,0,0);
+      }
+      const slotEnd=slotStart ? new Date(slotStart.getTime()+60*60*1000) : null;
+
+      if(slotStart && slotStart>reportNow){
+        st='future';
+        lines.push('—');
+      }else if(fixed){
+        st='exempt';
+        lines.push(completed ? `免巡｜實巡${completed}/5` : '免巡');
+        lines.push(fixed);
+      }else if(special){
+        st='special';
+        lines.push(`不用打卡｜${special}`);
+        if(completed)lines.push(`實巡 ${completed}/5`);
+      }else if(slotStart && slotEnd && reportNow>=slotStart && reportNow<slotEnd){
+        st='current';
+        lines.push(`進行中 ${completed}/5`);
+      }else if(completed===5){
+        st='done';
+        lines.push('✓ 5/5');
+      }else{
+        st='missed';
+        lines.push(`△ ${completed}/5`);
+        const missing=pointIds.filter(p=>!(groups[`${shift}|${dutyDate}|${hour}|${p}`]||[]).length).map(p=>p.slice(-2));
+        lines.push(`缺 ${missing.join('、')}`);
+      }
+
+      lines.push(...pointLines);
+      row.push(lines.join('\n'));
+      statusRow.push(st);
+    });
+
+    aoa.push(row);
+    cellStatus.push(statusRow);
+  }
+
+  // 人員代碼圖例
+  const legend=aliasInfo.ids.map(id=>`${aliasInfo.aliases[id]}=${aliasInfo.names[id]}(${id})`).join('｜');
+  aoa.push([]);
+  aoa.push([`人員代碼：${legend}`]);
+  aoa.push(['狀態：綠＝5/5完成｜紅＝未達5點｜灰＝固定免巡｜金黃＝特殊勤務不用打卡']);
+
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  const lastCol=hours.length;
+  const end=XLSX.utils.encode_col(lastCol);
+  ws['!merges']=[
+    {s:{r:0,c:0},e:{r:0,c:lastCol}},
+    {s:{r:1,c:0},e:{r:1,c:lastCol}},
+    {s:{r:4+days,c:0},e:{r:4+days,c:lastCol}},
+    {s:{r:5+days,c:0},e:{r:5+days,c:lastCol}}
+  ];
+  ws['!cols']=[{wch:12},...hours.map(()=>({wch:14}))];
+  ws['!rows']=[{hpt:24},{hpt:20},{hpt:24},...Array(days).fill({hpt:48}),{hpt:8},{hpt:22},{hpt:22}];
+
+  const S=reportStyles();
+  reportApplyRangeStyle(ws,`A1:${end}1`,S.title);
+  reportApplyRangeStyle(ws,`A2:${end}2`,S.note);
+  reportApplyRangeStyle(ws,`A3:${end}3`,S.header);
+
+  for(let day=1;day<=days;day++){
+    const rowIndex=2+day;
+    const dateRef=XLSX.utils.encode_cell({r:rowIndex,c:0});
+    if(ws[dateRef])ws[dateRef].s=S.header;
+
+    for(let c=1;c<=lastCol;c++){
+      const ref=XLSX.utils.encode_cell({r:rowIndex,c});
+      if(!ws[ref])continue;
+      const st=cellStatus[day-1][c];
+      ws[ref].s=S[st]||S.body;
+    }
+  }
+
+  const legend1=4+days;
+  const legend2=5+days;
+  reportApplyRangeStyle(ws,`A${legend1+1}:${end}${legend1+1}`,S.note);
+  reportApplyRangeStyle(ws,`A${legend2+1}:${end}${legend2+1}`,S.special);
+
+  return ws;
+}
+
+
+function reportFilename(data,type){
+  const roc=data.year-1911;
+  const ym=`${roc}年${data.month}月`;
+  if(type==='clock')return `高雄軟體園區保全勤務_${ym}_上下班簽到月報.xlsx`;
+  if(type==='patrol')return `高雄軟體園區保全勤務_${ym}_巡查點簽到月報.xlsx`;
+  return `高雄軟體園區保全勤務_${ym}_完整月報.xlsx`;
+}
+
+
+async function generateMonthlyReport(type){
+  if(!currentPerson){
+    status('monthlyReportMessage','請先登入。','warn');
+    return;
+  }
+
+  if(typeof XLSX==='undefined'){
+    status('monthlyReportMessage','Excel 產生元件載入失敗，請確認網路後重新開啟系統。','err');
+    return;
+  }
+
+  let parts;
+  try{
+    parts=reportMonthParts();
+  }catch(e){
+    status('monthlyReportMessage',e.message,'warn');
+    return;
+  }
+
+  const buttons=[
+    $('generateClockReportBtn'),
+    $('generatePatrolReportBtn'),
+    $('generateFullReportBtn')
+  ];
+  buttons.forEach(b=>b.disabled=true);
+
+  status('monthlyReportMessage','正在讀取月報表資料並產生 Excel…','info');
+
+  try{
+    const data=await apiCall('monthlyReportData',{
+      personId:currentPerson.personId,
+      sessionToken:currentSessionToken,
+      year:parts.year,
+      month:parts.month
+    });
+
+    const wb=XLSX.utils.book_new();
+
+    if(type==='clock' || type==='full'){
+      XLSX.utils.book_append_sheet(
+        wb,
+        buildClockReportSheet(data),
+        '上下班簽到月報'
+      );
+    }
+
+    if(type==='patrol' || type==='full'){
+      XLSX.utils.book_append_sheet(
+        wb,
+        buildPatrolReportSheet(data,'白班'),
+        '白班巡查點月報'
+      );
+
+      XLSX.utils.book_append_sheet(
+        wb,
+        buildPatrolReportSheet(data,'晚班'),
+        '晚班巡查點月報'
+      );
+    }
+
+    XLSX.writeFile(
+      wb,
+      reportFilename(data,type),
+      {compression:true}
+    );
+
+    status(
+      'monthlyReportMessage',
+      `已生成 ${data.year}年${data.month}月月報表，共讀取 ${data.records?.length||0} 筆系統紀錄。`,
+      'ok'
+    );
+
+  }catch(e){
+    status('monthlyReportMessage',e.message,'err');
+  }finally{
+    buttons.forEach(b=>b.disabled=false);
   }
 }
 

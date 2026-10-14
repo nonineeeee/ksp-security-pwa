@@ -9,8 +9,9 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=20261008-specialtime-unified14141">
+  <link rel="stylesheet" href="./styles.css?v=20261014-monthlyreport1416">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
   <title>高雄軟體園區保全勤務簽到系統</title>
 </head>
 <body>
@@ -20,7 +21,7 @@
     <div class="logo">🛡️</div>
     <div>
       <h1>高雄軟體園區<br>保全勤務定點簽到系統</h1>
-      <p>勤務巡查版｜fresh-v1.14.15</p>
+      <p>勤務巡查版｜fresh-v1.14.16</p>
     </div>
   </header>
 
@@ -54,7 +55,7 @@
         <small>Excel／CSV／PDF</small>
       </a>
 
-      <a class="btn gps-admin-link" href="./checkpoint-gps.html">
+      <a class="btn gps-admin-link hidden" href="./checkpoint-gps.html">
         📍 巡查點 GPS 定位設定
         <small>P01／P02／P03／P04／P05</small>
       </a>
@@ -161,10 +162,53 @@
         <span>🌧️</span><b>特殊巡查不強制</b><small>颱風／風雨／活動支援</small>
       </button>
 
+      <button id="monthlyReportBtn" class="tile wide report-tile">
+        <span>📊</span><b>生成月報表</b><small>上下班簽到＋巡查點簽到 Excel</small>
+      </button>
+
       <button id="clockOutBtn" class="tile wide checkout-tile">
         <span>🔴</span><b>下班簽退</b><small>GPS 簽退</small>
       </button>
     </section>
+  </section>
+
+  <section id="monthlyReportView" class="card hidden">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">核銷／紙本彙整</div>
+        <h2>生成勤務月報表</h2>
+      </div>
+      <button id="monthlyReportBackBtn" class="text-btn" type="button">返回</button>
+    </div>
+
+    <div class="notice">
+      月報表直接依系統「簽到紀錄」產生，不會修改原始資料。
+      巡查點報表會分成白班與晚班，每小時一格，並保留 P01～P05 的實際巡查時間與執行人員。
+    </div>
+
+    <label for="reportMonth">報表月份</label>
+    <input id="reportMonth" type="month">
+
+    <div class="monthly-report-actions">
+      <button id="generateClockReportBtn" class="btn outline" type="button">
+        ⬇️ 生成上下班簽到月報
+      </button>
+
+      <button id="generatePatrolReportBtn" class="btn outline" type="button">
+        ⬇️ 生成巡查點簽到月報
+      </button>
+
+      <button id="generateFullReportBtn" class="btn primary" type="button">
+        ⬇️ 生成完整月報（建議）
+      </button>
+    </div>
+
+    <div class="mini-note monthly-report-note">
+      完整月報包含 3 張工作表：上下班簽到月報、白班巡查點月報、晚班巡查點月報。<br>
+      巡查格內：✓ 5/5＝完成；△＝未達5點；免巡＝固定免巡；「不用打卡」＝整班特殊巡查不強制。
+    </div>
+
+    <div id="monthlyReportMessage"></div>
   </section>
 
   <section id="patrolView" class="card hidden">
@@ -586,6 +630,6 @@
 </div>
 
 <script src="./config.js"></script>
-<script src="./app.js?v=20261012-clockstate14142"></script>
+<script src="./app.js?v=20261014-monthlyreport1416"></script>
 </body>
 </html>

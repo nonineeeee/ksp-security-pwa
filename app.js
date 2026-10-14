@@ -3718,7 +3718,7 @@ function buildPatrolReportSheet(data,shift){
 
   const aoa=[];
   aoa.push([`高雄軟體園區保全勤務－${shift}巡查點月報（${shift==='白班'?'06:00–18:00':'18:00–次日06:00'}）`]);
-  aoa.push([`每格：完成狀態＋P01～P05實際巡查時間／執行人員。＊＝指定時間登錄；＃＝人工輸入巡查。資料產生：${data.generatedAt||''}`]);
+  aoa.push([`每格：完成狀態＋P01～P05實際巡查時間／執行人員。＃＝人工輸入巡查。資料產生：${data.generatedAt||''}`]);
   aoa.push(['勤務日',...hourLabels]);
 
   const cellStatus=[];
@@ -3746,8 +3746,8 @@ function buildPatrolReportSheet(data,shift){
 
         const items=recs.map(r=>{
           let mark='';
-          if(r.action==='定點巡查指定時間登錄')mark='*';
-          else if(String(r.result||'').includes('人工輸入'))mark='#';
+          // 月報表不標示「指定時間登錄」；與一般巡查統一呈現。
+          if(String(r.result||'').includes('人工輸入'))mark='#';
           const alias=aliasInfo.aliases[r.personId]||r.personId||'';
           return `${r.time}${alias}${mark}`;
         });

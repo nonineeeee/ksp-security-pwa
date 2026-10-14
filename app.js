@@ -3818,7 +3818,45 @@ function buildPatrolReportSheet(data,shift){
     {s:{r:5+days,c:0},e:{r:5+days,c:lastCol}}
   ];
   ws['!cols']=[{wch:12},...hours.map(()=>({wch:14}))];
-  ws['!rows']=[{hpt:24},{hpt:20},{hpt:24},...Array(days).fill({hpt:48}),{hpt:8},{hpt:22},{hpt:22}];
+
+  // 每日列高依當天最長的巡查格自動計算。
+  // 避免 P05 位於第 5 行時被固定列高裁切，使用者不需再手動拉高儲存格。
+  const patrolRowHeights=[];
+
+  for(let day=1;day<=days;day++){
+    const row=aoa[2+day]||[];
+    let maxLines=1;
+
+    row.slice(1).forEach(value=>{
+      const text=String(value||'');
+      const lines=text ? text.split('\n').length : 1;
+      if(lines>maxLines)maxLines=lines;
+    });
+
+    // 6.5pt 字體下，每行約 9pt，再加上下留白。
+    // 最低 30pt，完整 5 點巡查通常約 58～67pt。
+    const height=Math.max(
+      30,
+      Math.min(
+        84,
+        8 + maxLines*9
+      )
+    );
+
+    patrolRowHeights.push({
+      hpt:height
+    });
+  }
+
+  ws['!rows']=[
+    {hpt:24},
+    {hpt:20},
+    {hpt:24},
+    ...patrolRowHeights,
+    {hpt:8},
+    {hpt:22},
+    {hpt:22}
+  ];
 
   const S=reportStyles();
   reportApplyRangeStyle(ws,`A1:${end}1`,S.title);

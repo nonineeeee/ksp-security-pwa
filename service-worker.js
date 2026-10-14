@@ -1,5 +1,5 @@
 
-const CACHE_NAME='ksp-security-fresh-pwa-report-no-backfill-mark-14162';
+const CACHE_NAME='ksp-security-fresh-pwa-auto-rowheight-14163';
 
 const STATIC_ASSETS=[
   './manifest.json',

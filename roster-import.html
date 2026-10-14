@@ -5,16 +5,17 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0b1f33">
   <link rel="icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=20260929-2">
+  <link rel="stylesheet" href="./styles.css?v=20261014-holidayeditor1415">
   <title>高軟保全｜匯入班表</title>
 </head>
 <body>
 <main class="app">
+<a class="btn outline" href="./checkpoint-gps.html">📍 巡查點 GPS 定位設定</a>
   <header class="hero">
     <div class="logo">📥</div>
     <div>
       <h1>匯入班表</h1>
-      <p>與保全簽到共用 fresh-v1 API</p>
+      <p>與保全簽到共用 fresh-v1.14.15 API</p>
     </div>
   </header>
 
@@ -42,6 +43,15 @@
       </div>
     </div>
 
+    <button id="holidayToggleBtn" class="btn holiday-btn" type="button">
+      📅 修改本月特殊假日
+    </button>
+
+    <div class="mini-note roster-holiday-note">
+      週六、週日系統本來就會自動套用假日巡查規則，不需要另外設定；
+      此處主要設定平日遇國定假日、補假或園區特殊假日。
+    </div>
+
     <label for="file">Excel／CSV 班表</label>
     <input id="file" type="file" accept=".xlsx,.xls,.csv,text/csv">
 
@@ -62,6 +72,38 @@
     <div id="message"></div>
 
     <button id="importBtn" class="btn primary hidden">確認匯入</button>
+  </section>
+
+  <section id="holidayPanel" class="card holiday-editor hidden">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">巡查規則設定</div>
+        <h2>特殊假日設定</h2>
+      </div>
+      <button id="holidayCloseBtn" class="text-btn" type="button">收合</button>
+    </div>
+
+    <div id="holidayMonthLabel" class="holiday-month-label"></div>
+
+    <div class="notice holiday-notice">
+      勾選後，該日期會依「假日」巡查規則計算。
+      週六、週日已由系統自動判定為假日，所以只顯示提醒，不需勾選。
+    </div>
+
+    <div id="holidayGrid" class="holiday-grid">
+      <div class="empty">讀取中…</div>
+    </div>
+
+    <div class="holiday-actions">
+      <button id="holidayClearBtn" class="btn outline" type="button">
+        清除本月特殊假日
+      </button>
+      <button id="holidaySaveBtn" class="btn primary" type="button">
+        儲存特殊假日
+      </button>
+    </div>
+
+    <div id="holidayMessage"></div>
   </section>
 
   <section class="card">
@@ -96,6 +138,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="./config.js"></script>
-<script src="./roster-import.js?v=20260929-2"></script>
+<script src="./roster-import.js?v=20261014-holidayeditor1415"></script>
 </body>
 </html>

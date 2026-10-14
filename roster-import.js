@@ -1,5 +1,7 @@
 
 let parsedRows=[];
+let holidayLoaded=false;
+let holidayExisting=[];
 
 const $=id=>document.getElementById(id);
 
@@ -13,8 +15,12 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('previewBtn').addEventListener('click',previewFile);
   $('importBtn').addEventListener('click',doImport);
   $('statusBtn').addEventListener('click',loadStatus);
-  $('year').addEventListener('change',loadStatus);
-  $('month').addEventListener('change',loadStatus);
+  $('holidayToggleBtn').addEventListener('click',toggleHolidayPanel);
+  $('holidayCloseBtn').addEventListener('click',closeHolidayPanel);
+  $('holidaySaveBtn').addEventListener('click',saveHolidays);
+  $('holidayClearBtn').addEventListener('click',clearHolidayChecks);
+  $('year').addEventListener('change',handleMonthChange);
+  $('month').addEventListener('change',handleMonthChange);
 
   checkApi();
   loadStatus();
@@ -123,6 +129,429 @@ async function checkApi(){
     $('apiDetail').textContent=e.message;
   }
 }
+
+
+function selectedYearMonth(){
+  return {
+    year:
+      Number(
+        $('year').value
+      ),
+    month:
+      Number(
+        $('month').value
+      )
+  };
+}
+
+
+function handleMonthChange(){
+  loadStatus();
+
+  if(
+    !$('holidayPanel')
+      .classList
+      .contains('hidden')
+  ){
+    loadHolidays();
+  }else{
+    holidayLoaded=false;
+  }
+}
+
+
+function toggleHolidayPanel(){
+  const panel=
+    $('holidayPanel');
+
+  if(
+    panel.classList.contains(
+      'hidden'
+    )
+  ){
+    panel.classList.remove(
+      'hidden'
+    );
+
+    loadHolidays();
+  }else{
+    closeHolidayPanel();
+  }
+}
+
+
+function closeHolidayPanel(){
+  $('holidayPanel')
+    .classList
+    .add('hidden');
+}
+
+
+function localDateText(
+  year,
+  month,
+  day
+){
+  return (
+    String(year) +
+    '/' +
+    String(month)
+      .padStart(2,'0') +
+    '/' +
+    String(day)
+      .padStart(2,'0')
+  );
+}
+
+
+function renderHolidayGrid(
+  holidays
+){
+  const {
+    year,
+    month
+  }=
+    selectedYearMonth();
+
+  const days=
+    new Date(
+      year,
+      month,
+      0
+    ).getDate();
+
+  const selected=
+    new Set(
+      (holidays||[])
+        .map(
+          x =>
+            String(
+              x.date||''
+            )
+        )
+    );
+
+  const noteMap={};
+
+  (holidays||[])
+    .forEach(
+      x=>{
+        noteMap[
+          String(
+            x.date||''
+          )
+        ]=
+          String(
+            x.note||''
+          );
+      }
+    );
+
+  const week=[
+    '日','一','二','三','四','五','六'
+  ];
+
+  const cells=[];
+
+  for(
+    let day=1;
+    day<=days;
+    day++
+  ){
+    const d=
+      new Date(
+        year,
+        month-1,
+        day
+      );
+
+    const weekend=
+      d.getDay()===0 ||
+      d.getDay()===6;
+
+    const dateText=
+      localDateText(
+        year,
+        month,
+        day
+      );
+
+    if(weekend){
+      cells.push(`
+        <div class="holiday-day weekend">
+          <div class="holiday-day-top">
+            <strong>${month}/${day}</strong>
+            <span>週${week[d.getDay()]}</span>
+          </div>
+          <small>系統自動假日</small>
+        </div>
+      `);
+
+      continue;
+    }
+
+    const checked=
+      selected.has(
+        dateText
+      );
+
+    const note=
+      noteMap[
+        dateText
+      ] || '';
+
+    cells.push(`
+      <label class="holiday-day ${checked?'selected':''}">
+        <input
+          type="checkbox"
+          class="holiday-check"
+          value="${dateText}"
+          ${checked?'checked':''}
+        >
+        <span class="holiday-day-body">
+          <span class="holiday-day-top">
+            <strong>${month}/${day}</strong>
+            <span>週${week[d.getDay()]}</span>
+          </span>
+          <small>${checked?esc(note||'特殊假日'):'點選設為特殊假日'}</small>
+        </span>
+      </label>
+    `);
+  }
+
+  $('holidayGrid').innerHTML=
+    cells.join('');
+
+  $('holidayGrid')
+    .querySelectorAll(
+      '.holiday-check'
+    )
+    .forEach(
+      input=>{
+        input.addEventListener(
+          'change',
+          ()=>{
+            input
+              .closest(
+                '.holiday-day'
+              )
+              .classList
+              .toggle(
+                'selected',
+                input.checked
+              );
+
+            const small=
+              input
+                .closest(
+                  '.holiday-day'
+                )
+                .querySelector(
+                  'small'
+                );
+
+            small.textContent=
+              input.checked
+                ? '特殊假日'
+                : '點選設為特殊假日';
+          }
+        );
+      }
+    );
+}
+
+
+async function loadHolidays(){
+  const {
+    year,
+    month
+  }=
+    selectedYearMonth();
+
+  $('holidayMonthLabel').textContent=
+    `${year}年 ${month}月`;
+
+  $('holidayGrid').innerHTML=
+    '<div class="empty">正在讀取特殊假日…</div>';
+
+  status(
+    'holidayMessage',
+    ''
+  );
+
+  try{
+    const r=
+      await apiCall(
+        'holidayList',
+        {
+          year,
+          month
+        }
+      );
+
+    holidayExisting=
+      Array.isArray(
+        r.holidays
+      )
+        ? r.holidays
+        : [];
+
+    holidayLoaded=true;
+
+    renderHolidayGrid(
+      holidayExisting
+    );
+
+    if(r.count){
+      status(
+        'holidayMessage',
+        `目前已設定 ${r.count} 個特殊假日。`,
+        'info'
+      );
+    }
+
+  }catch(e){
+    holidayLoaded=false;
+
+    $('holidayGrid').innerHTML=
+      '<div class="empty">讀取失敗。</div>';
+
+    status(
+      'holidayMessage',
+      e.message,
+      'err'
+    );
+  }
+}
+
+
+function checkedHolidayDates(){
+  return Array
+    .from(
+      document.querySelectorAll(
+        '.holiday-check:checked'
+      )
+    )
+    .map(
+      x =>
+        x.value
+    )
+    .filter(Boolean);
+}
+
+
+function clearHolidayChecks(){
+  document
+    .querySelectorAll(
+      '.holiday-check'
+    )
+    .forEach(
+      x=>{
+        x.checked=false;
+
+        x
+          .closest(
+            '.holiday-day'
+          )
+          .classList
+          .remove(
+            'selected'
+          );
+
+        const small=
+          x
+            .closest(
+              '.holiday-day'
+            )
+            .querySelector(
+              'small'
+            );
+
+        if(small){
+          small.textContent=
+            '點選設為特殊假日';
+        }
+      }
+    );
+
+  status(
+    'holidayMessage',
+    '已取消畫面上的勾選；按「儲存特殊假日」後才會正式寫入。',
+    'warn'
+  );
+}
+
+
+async function saveHolidays(){
+  const {
+    year,
+    month
+  }=
+    selectedYearMonth();
+
+  const dates=
+    checkedHolidayDates();
+
+  const preview=
+    dates.length
+      ? dates
+          .map(
+            x =>
+              x.slice(5)
+                .replace('/','/')
+          )
+          .join('、')
+      : '無';
+
+  if(
+    !confirm(
+      `確定更新 ${year}年${month}月 特殊假日？\n\n`+
+      `特殊假日：${preview}\n\n`+
+      '週六、週日不需設定，系統會自動視為假日。'
+    )
+  ){
+    return;
+  }
+
+  const btn=
+    $('holidaySaveBtn');
+
+  btn.disabled=true;
+  btn.textContent='儲存中…';
+
+  try{
+    const r=
+      await apiCall(
+        'holidaySave',
+        {
+          year,
+          month,
+          dates
+        }
+      );
+
+    status(
+      'holidayMessage',
+      r.message,
+      'ok'
+    );
+
+    await loadHolidays();
+    await loadStatus();
+
+  }catch(e){
+    status(
+      'holidayMessage',
+      e.message,
+      'err'
+    );
+
+  }finally{
+    btn.disabled=false;
+    btn.textContent='儲存特殊假日';
+  }
+}
+
 
 async function loadStatus(){
   try{

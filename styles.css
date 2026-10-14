@@ -2401,3 +2401,144 @@ body.popup-open{
     grid-template-columns:1fr!important;
   }
 }
+
+
+/* =========================================================
+   fresh-v1.14.15｜匯入班表－特殊假日設定
+   ========================================================= */
+
+.holiday-btn{
+  margin-top:2px;
+  margin-bottom:6px;
+  border:1px solid #bdccd6!important;
+  background:#edf3f6!important;
+  color:#315b72!important;
+  box-shadow:none!important;
+}
+
+.roster-holiday-note{
+  margin-bottom:16px;
+}
+
+.holiday-editor{
+  border-top:4px solid #557c94;
+}
+
+.holiday-month-label{
+  margin:2px 0 10px;
+  color:#233f55;
+  font-size:20px;
+  font-weight:900;
+}
+
+.holiday-notice{
+  background:#f4f7f9!important;
+  border-color:#c7d3dc!important;
+  color:#425c6d!important;
+}
+
+.holiday-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+  margin-top:12px;
+}
+
+.holiday-day{
+  display:flex;
+  min-height:68px;
+  box-sizing:border-box;
+  margin:0;
+  padding:9px 10px;
+  border:1px solid #ccd7df;
+  border-radius:11px;
+  background:#fff;
+  color:#304a5b;
+  cursor:pointer;
+}
+
+.holiday-day input{
+  width:auto!important;
+  margin:3px 8px 0 0!important;
+  flex:0 0 auto;
+}
+
+.holiday-day-body{
+  display:block;
+  min-width:0;
+  flex:1;
+}
+
+.holiday-day-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:6px;
+}
+
+.holiday-day-top strong{
+  color:#233f55;
+  font-size:14px;
+}
+
+.holiday-day-top span{
+  color:#71838f;
+  font-size:12px;
+}
+
+.holiday-day small{
+  display:block;
+  margin-top:6px;
+  color:#788994;
+  font-size:11px;
+  line-height:1.35;
+}
+
+.holiday-day.selected{
+  border-color:#d2aa3b;
+  background:#fff7dc;
+}
+
+.holiday-day.selected .holiday-day-top strong{
+  color:#795a0d;
+}
+
+.holiday-day.selected small{
+  color:#8a650e;
+  font-weight:800;
+}
+
+.holiday-day.weekend{
+  display:block;
+  border-color:#d5dde2;
+  background:#f0f3f5;
+  color:#7b8992;
+  cursor:default;
+}
+
+.holiday-day.weekend .holiday-day-top strong{
+  color:#667984;
+}
+
+.holiday-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:12px;
+}
+
+@media(max-width:600px){
+  .holiday-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
+
+@media(max-width:420px){
+  .holiday-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  .holiday-actions{
+    grid-template-columns:1fr;
+  }
+}

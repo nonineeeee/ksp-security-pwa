@@ -1,5 +1,5 @@
 
-const CACHE_NAME='ksp-security-fresh-pwa-auto-rowheight-14163';
+const CACHE_NAME='ksp-security-fresh-pwa-night-clock-fix-14164';
 
 const STATIC_ASSETS=[
   './manifest.json',

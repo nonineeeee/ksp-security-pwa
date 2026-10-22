@@ -158,7 +158,7 @@ function applyLoginResponse(
   const exempt=r.patrolExempt;
   if(exempt?.exempt){
     $('patrolExempt').textContent=
-      `目前免巡查：${exempt.reason}`;
+      `目前暫停巡查：${exempt.reason}`;
     $('patrolExempt').classList.remove('hidden');
   }else{
     $('patrolExempt').classList.add('hidden');
@@ -3460,21 +3460,22 @@ function reportIsHoliday(dateText,holidaySet){
 }
 
 
-function reportFixedExempt(dateText,shift,hour,holidaySet){
+function reportFixedPauseNote(dateText,shift,slotHour,holidaySet){
   const holiday=reportIsHoliday(dateText,holidaySet);
 
   if(shift==='白班'){
     if(holiday){
-      return hour===12 ? '午休' : '';
+      return slotHour===12 ? '暫停12–13午休' : '';
     }
 
-    if(hour===8)return '交管';
-    if(hour===11 || hour===12)return '導護';
-    if(hour===17)return '交管';
+    if(slotHour===6)return '暫停08–09交管';
+    if(slotHour===9)return '暫停11–12導護';
+    if(slotHour===12)return '暫停12–13導護';
+    if(slotHour===15)return '暫停17–18交管';
     return '';
   }
 
-  if(!holiday && hour===18)return '交管';
+  if(!holiday && slotHour===18)return '暫停18–19交管';
   return '';
 }
 
@@ -3517,7 +3518,7 @@ function reportSpecialReason(data,dateText,shift,hour){
   const dutyStart=shift==='白班' ? 6 : 18;
   const slotStart=new Date(2000,0,1,hour,0,0,0);
   if(shift==='晚班' && hour<6)slotStart.setDate(2);
-  const slotEnd=new Date(slotStart.getTime()+60*60*1000);
+  const slotEnd=new Date(slotStart.getTime()+3*60*60*1000);
 
   for(const x of items){
     if(!x.startTime && !x.endTime){
@@ -3546,6 +3547,24 @@ function reportSpecialReason(data,dateText,shift,hour){
 }
 
 
+function reportPatrolSlotHour(shift,hour){
+  if(shift==='白班'){
+    if(hour<6 || hour>=18)return null;
+    return 6 + Math.floor((hour-6)/3)*3;
+  }
+
+  if(hour>=18){
+    return hour<21 ? 18 : 21;
+  }
+
+  if(hour<6){
+    return hour<3 ? 0 : 3;
+  }
+
+  return null;
+}
+
+
 function reportPatrolGroups(data){
   const out={};
 
@@ -3571,7 +3590,10 @@ function reportPatrolGroups(data){
       dutyDate=`${prev.getFullYear()}/${String(prev.getMonth()+1).padStart(2,'0')}/${String(prev.getDate()).padStart(2,'0')}`;
     }
 
-    const key=`${shift}|${dutyDate}|${h}|${r.checkpointId}`;
+    const slotHour=reportPatrolSlotHour(shift,h);
+    if(slotHour===null)return;
+
+    const key=`${shift}|${dutyDate}|${slotHour}|${r.checkpointId}`;
     if(!out[key])out[key]=[];
     out[key].push(r);
   });
@@ -3705,9 +3727,9 @@ function buildClockReportSheet(data){
 function buildPatrolReportSheet(data,shift){
   const {year,month}=data;
   const hours=shift==='白班'
-    ? [6,7,8,9,10,11,12,13,14,15,16,17]
-    : [18,19,20,21,22,23,0,1,2,3,4,5];
-  const hourLabels=hours.map(h=>`${String(h).padStart(2,'0')}–${String((h+1)%24).padStart(2,'0')}`);
+    ? [6,9,12,15]
+    : [18,21,0,3];
+  const hourLabels=hours.map(h=>`${String(h).padStart(2,'0')}–${String((h+3)%24).padStart(2,'0')}`);
   const days=reportDaysInMonth(year,month);
   const holidaySet=new Set((data.holidays||[]).map(x=>x.date));
   const groups=reportPatrolGroups(data);
@@ -3718,7 +3740,7 @@ function buildPatrolReportSheet(data,shift){
 
   const aoa=[];
   aoa.push([`高雄軟體園區保全勤務－${shift}巡查點月報（${shift==='白班'?'06:00–18:00':'18:00–次日06:00'}）`]);
-  aoa.push([`每格：完成狀態＋P01～P05實際巡查時間／執行人員。＃＝人工輸入巡查。資料產生：${data.generatedAt||''}`]);
+  aoa.push([`每格＝3小時巡查區間；P01～P05於該區間各完成1次即可。固定交管／導護／午休僅暫停掃描，不免除整個3小時區間。資料產生：${data.generatedAt||''}`]);
   aoa.push(['勤務日',...hourLabels]);
 
   const cellStatus=[];
@@ -3733,8 +3755,8 @@ function buildPatrolReportSheet(data,shift){
     const statusRow=['date'];
 
     hours.forEach(hour=>{
-      const fixed=reportFixedExempt(dutyDate,shift,hour,holidaySet);
-      const special=!fixed ? reportSpecialReason(data,dutyDate,shift,hour) : '';
+      const pauseNote=reportFixedPauseNote(dutyDate,shift,hour,holidaySet);
+      const special=reportSpecialReason(data,dutyDate,shift,hour);
       const pointLines=[];
       let completed=0;
 
@@ -3767,15 +3789,11 @@ function buildPatrolReportSheet(data,shift){
         }
         slotStart.setHours(hour,0,0,0);
       }
-      const slotEnd=slotStart ? new Date(slotStart.getTime()+60*60*1000) : null;
+      const slotEnd=slotStart ? new Date(slotStart.getTime()+3*60*60*1000) : null;
 
       if(slotStart && slotStart>reportNow){
         st='future';
         lines.push('—');
-      }else if(fixed){
-        st='exempt';
-        lines.push(completed ? `免巡｜實巡${completed}/5` : '免巡');
-        lines.push(fixed);
       }else if(special){
         st='special';
         lines.push(`不用打卡｜${special}`);
@@ -3793,6 +3811,10 @@ function buildPatrolReportSheet(data,shift){
         lines.push(`缺 ${missing.join('、')}`);
       }
 
+      if(pauseNote && st!=='future'){
+        lines.push(pauseNote);
+      }
+
       lines.push(...pointLines);
       row.push(lines.join('\n'));
       statusRow.push(st);
@@ -3806,7 +3828,7 @@ function buildPatrolReportSheet(data,shift){
   const legend=aliasInfo.ids.map(id=>`${aliasInfo.aliases[id]}=${aliasInfo.names[id]}(${id})`).join('｜');
   aoa.push([]);
   aoa.push([`人員代碼：${legend}`]);
-  aoa.push(['狀態：綠＝5/5完成｜紅＝未達5點｜灰＝固定免巡｜金黃＝特殊勤務不用打卡']);
+  aoa.push(['狀態：綠＝3小時內5/5完成｜紅＝未達5點｜金黃＝特殊勤務不用打卡｜交管／導護／午休僅暫停掃描，不免除該3小時巡查要求']);
 
   const ws=XLSX.utils.aoa_to_sheet(aoa);
   const lastCol=hours.length;
@@ -3817,7 +3839,7 @@ function buildPatrolReportSheet(data,shift){
     {s:{r:4+days,c:0},e:{r:4+days,c:lastCol}},
     {s:{r:5+days,c:0},e:{r:5+days,c:lastCol}}
   ];
-  ws['!cols']=[{wch:12},...hours.map(()=>({wch:14}))];
+  ws['!cols']=[{wch:12},...hours.map(()=>({wch:32}))];
 
   // 每日列高依當天最長的巡查格自動計算。
   // 避免 P05 位於第 5 行時被固定列高裁切，使用者不需再手動拉高儲存格。
@@ -3838,7 +3860,7 @@ function buildPatrolReportSheet(data,shift){
     const height=Math.max(
       30,
       Math.min(
-        84,
+        110,
         8 + maxLines*9
       )
     );

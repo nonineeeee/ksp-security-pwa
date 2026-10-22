@@ -21,7 +21,7 @@
     <div class="logo">🛡️</div>
     <div>
       <h1>高雄軟體園區<br>保全勤務定點簽到系統</h1>
-      <p>勤務巡查版｜fresh-v1.14.16.4</p>
+      <p>勤務巡查版｜fresh-v1.14.17</p>
     </div>
   </header>
 
@@ -111,7 +111,7 @@
         >
           <div class="patrol-progress-summary">
             <div>
-              <div class="eyebrow">本班每小時共同巡查進度<br><small class="gps-point-summary">GPS巡查點：P01 公園崗哨／P02 智科大樓／P03 鴻海大樓北側／P04 A棟大樓後方／P05 C棟大樓後方</small></div>
+              <div class="eyebrow">本班每3小時共同巡查進度<br><small class="gps-point-summary">GPS巡查點：P01 公園崗哨／P02 智科大樓／P03 鴻海大樓北側／P04 A棟大樓後方／P05 C棟大樓後方</small></div>
               <strong id="patrolProgressSummaryText">讀取中…</strong>
             </div>
             <div class="patrol-progress-summary-right">
@@ -127,8 +127,8 @@
 
         <div id="patrolProgressDetail" class="patrol-progress-detail hidden">
           <div class="hourly-rule-note">
-            <strong>每小時為1個巡查時段，同班保全共同完成5個定點。</strong><br>
-            每個時段 P01／P02／P03／P04／P05 各完成1次即可；由同班任何一位保全完成都算整班完成。
+            <strong>每3小時為1個巡查時段，同班保全共同完成5個定點。</strong><br>
+            每個3小時區間 P01／P02／P03／P04／P05 各完成1次即可；由同班任何一位保全完成都算整班完成。
           </div>
 
           <div id="hourlyPatrolList" class="hourly-patrol-list">
@@ -184,7 +184,7 @@
 
     <div class="notice">
       此功能可在登入前直接使用。月報表只讀取核銷所需的勤務資料，不會修改原始資料，也不輸出 GPS 座標。
-      巡查點報表會分成白班與晚班，每小時一格，並保留 P01～P05 的實際巡查時間與執行人員。
+      巡查點報表會分成白班與晚班，每3小時一格，並保留 P01～P05 的實際巡查時間與執行人員。
     </div>
 
     <label for="reportMonth">報表月份</label>
@@ -206,7 +206,8 @@
 
     <div class="mini-note monthly-report-note">
       完整月報包含 3 張工作表：上下班簽到月報、白班巡查點月報、晚班巡查點月報。<br>
-      巡查格內：✓ 5/5＝完成；△＝未達5點；免巡＝固定免巡；「不用打卡」＝整班特殊巡查不強制。
+      巡查採每3小時一區間：白班 06–09／09–12／12–15／15–18；晚班 18–21／21–00／00–03／03–06。<br>
+      巡查格內：✓ 5/5＝完成；△＝未達5點；「不用打卡」＝整班特殊巡查不強制。
     </div>
 
     <div id="monthlyReportMessage"></div>
@@ -631,6 +632,6 @@
 </div>
 
 <script src="./config.js"></script>
-<script src="./app.js?v=20261014-autorowheight14163"></script>
+<script src="./app.js?v=20261022-3hourpatrol1417"></script>
 </body>
 </html>

@@ -22,6 +22,10 @@ let todayDutyState={
   hasDuty:false,
   clockedIn:false,
   clockedOut:false,
+  clockInRecord:null,
+  clockOutEligibility:null,
+  serverNowMs:0,
+  serverSyncClientMs:0,
   patrolCount:0,
   patrolProgress:null,
   specialExempt:null,
@@ -337,6 +341,19 @@ $('successCloseBtn').addEventListener('click',hideSuccess);
   checkApi().finally(()=>{
     tryResumeDailyLogin();
   });
+
+  window.setInterval(
+    ()=>{
+      if(
+        currentPerson &&
+        todayDutyState.clockedIn &&
+        !todayDutyState.clockedOut
+      ){
+        updateClock12HourStatus();
+      }
+    },
+    30000
+  );
 
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
@@ -816,6 +833,201 @@ async function doClock(action){
 }
 
 
+
+function parseKspDateTimeMs(text){
+  const m=
+    String(
+      text||''
+    ).match(
+      /^(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?/
+    );
+
+  if(!m){
+    return 0;
+  }
+
+  return new Date(
+    Number(m[1]),
+    Number(m[2])-1,
+    Number(m[3]),
+    Number(m[4]),
+    Number(m[5]),
+    Number(m[6]||0),
+    0
+  ).getTime();
+}
+
+
+function syncedServerNowMs(){
+  if(
+    !todayDutyState.serverNowMs ||
+    !todayDutyState.serverSyncClientMs
+  ){
+    return Date.now();
+  }
+
+  return (
+    todayDutyState.serverNowMs +
+    (
+      Date.now() -
+      todayDutyState.serverSyncClientMs
+    )
+  );
+}
+
+
+function durationTextFromMinutes(totalMinutes){
+  const min=
+    Math.max(
+      0,
+      Math.floor(
+        Number(
+          totalMinutes||0
+        )
+      )
+    );
+
+  const h=
+    Math.floor(
+      min/60
+    );
+
+  const m=
+    min%60;
+
+  return `${h}小時${String(m).padStart(2,'0')}分`;
+}
+
+
+function shortDateTimeText(text){
+  const m=
+    String(
+      text||''
+    ).match(
+      /^(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})/
+    );
+
+  if(!m){
+    return String(
+      text||'—'
+    );
+  }
+
+  const sameDay=
+    todayDutyState
+      .clockInRecord
+      ?.date ===
+    `${m[1]}/${m[2]}/${m[3]}`;
+
+  return sameDay
+    ? `${m[4]}:${m[5]}`
+    : `${m[2]}/${m[3]} ${m[4]}:${m[5]}`;
+}
+
+
+function updateClock12HourStatus(){
+  const chip=
+    $('workTimeChip');
+
+  if(!chip){
+    return;
+  }
+
+  const eligibility=
+    todayDutyState
+      .clockOutEligibility;
+
+  const clockIn=
+    todayDutyState
+      .clockInRecord;
+
+  if(
+    !todayDutyState.hasDuty ||
+    !todayDutyState.clockedIn ||
+    !clockIn ||
+    todayDutyState.clockedOut
+  ){
+    chip.classList.add(
+      'hidden'
+    );
+
+    chip.textContent=
+      '勤務時間 —';
+
+    return;
+  }
+
+  const clockInText=
+    `${clockIn.date||''} ${clockIn.time||''}`.trim();
+
+  const clockInMs=
+    parseKspDateTimeMs(
+      clockInText
+    );
+
+  const nowMs=
+    syncedServerNowMs();
+
+  const elapsedMinutes=
+    clockInMs
+      ? Math.max(
+          0,
+          Math.floor(
+            (
+              nowMs -
+              clockInMs
+            ) /
+            60000
+          )
+        )
+      : Number(
+          eligibility?.elapsedMinutes||
+          0
+        );
+
+  const eligibleAtMs=
+    parseKspDateTimeMs(
+      eligibility?.eligibleAt
+    );
+
+  const reached12=
+    eligibleAtMs
+      ? nowMs>=eligibleAtMs
+      : elapsedMinutes>=720;
+
+  const eligibleText=
+    eligibility?.eligibleAt
+      ? shortDateTimeText(
+          eligibility.eligibleAt
+        )
+      : '';
+
+  const workText=
+    durationTextFromMinutes(
+      elapsedMinutes
+    );
+
+  chip.classList.remove(
+    'hidden'
+  );
+
+  chip.classList.toggle(
+    'worktime-ready',
+    reached12
+  );
+
+  chip.classList.toggle(
+    'worktime-waiting',
+    !reached12
+  );
+
+  chip.textContent=
+    reached12
+      ? `上班 ${clockIn.time||'—'}｜已勤務 ${workText}｜已滿12小時`
+      : `上班 ${clockIn.time||'—'}｜已勤務 ${workText}${eligibleText?`｜${eligibleText}滿12小時`:''}`;
+}
+
+
 async function refreshDutyDashboard(){
   if(!currentPerson){
     return;
@@ -900,6 +1112,16 @@ async function refreshDutyDashboard(){
         typeof result.clockStatus?.clockedOut==='boolean'
           ? result.clockStatus.clockedOut
           : !!clockOutRecord,
+      clockInRecord:
+        clockInRecord,
+      clockOutEligibility:
+        result.clockOutEligibility||null,
+      serverNowMs:
+        parseKspDateTimeMs(
+          result.serverTime
+        ),
+      serverSyncClientMs:
+        Date.now(),
       patrolCount:
         patrolRecords.length,
       patrolProgress:
@@ -914,6 +1136,7 @@ async function refreshDutyDashboard(){
 
     renderDutyDashboard();
     renderHourlyPatrolProgress();
+    updateClock12HourStatus();
 
     if(
       Array.isArray(
@@ -933,6 +1156,10 @@ async function refreshDutyDashboard(){
         !!currentDuty,
       clockedIn:false,
       clockedOut:false,
+      clockInRecord:null,
+      clockOutEligibility:null,
+      serverNowMs:0,
+      serverSyncClientMs:0,
       patrolCount:0,
       patrolProgress:null,
       specialExempt:null,
@@ -942,6 +1169,7 @@ async function refreshDutyDashboard(){
 
     renderDutyDashboard();
     renderHourlyPatrolProgress();
+    updateClock12HourStatus();
 
     status(
       'mainMessage',
@@ -1402,6 +1630,10 @@ function applyDutyButtonState(){
       reason
     );
 
+    const clockOutSmall=
+      $('clockOutBtn')?.querySelector('small');
+    if(clockOutSmall)clockOutSmall.textContent='GPS 簽退';
+
     return;
   }
 
@@ -1423,6 +1655,10 @@ function applyDutyButtonState(){
       true,
       '請先完成上班簽到'
     );
+
+    const clockOutSmall=
+      $('clockOutBtn')?.querySelector('small');
+    if(clockOutSmall)clockOutSmall.textContent='請先上班簽到';
 
     if(patrolSmall){
       patrolSmall.textContent=
@@ -1452,6 +1688,17 @@ function applyDutyButtonState(){
       'clockOutBtn',
       false
     );
+
+    const clockOutSmall=
+      $('clockOutBtn')
+        ?.querySelector(
+          'small'
+        );
+
+    if(clockOutSmall){
+      clockOutSmall.textContent=
+        'GPS 簽退';
+    }
 
     if(patrolSmall){
       if(
@@ -1504,6 +1751,10 @@ function applyDutyButtonState(){
     true,
     '已完成下班簽退'
   );
+
+  const clockOutSmall=
+    $('clockOutBtn')?.querySelector('small');
+  if(clockOutSmall)clockOutSmall.textContent='已完成下班簽退';
 
   if(patrolSmall){
     patrolSmall.textContent=

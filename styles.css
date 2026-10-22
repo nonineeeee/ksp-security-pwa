@@ -2608,3 +2608,22 @@ body.popup-open{
   font-size:10px;
   font-weight:700;
 }
+
+
+
+
+/* fresh-v1.14.18.1｜勤務狀態內顯示12小時提示（不強制） */
+#workTimeChip{
+  white-space:normal;
+  line-height:1.35;
+}
+
+#workTimeChip.worktime-waiting{
+  background:#fff3c4;
+  color:#7c5b08;
+}
+
+#workTimeChip.worktime-ready{
+  background:#e3f3e8;
+  color:#2b6540;
+}
